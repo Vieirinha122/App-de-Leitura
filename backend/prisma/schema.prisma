@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  readingHistory   ReadingHistory[]
+  dailyRecommendations DailyRecommendation[]
+
+  @@map("users")
+}
+
+model Source {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  feedUrl   String?
+  type      String   // rss, newsletter, manual, api
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("sources")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  articles Article[]
+
+  @@map("categories")
+}
+
+model Article {
+  id                 String   @id @default(cuid())
+  title              String
+  url                String   @unique
+  summary            String?
+  readingTimeMinutes Int?
+  publishedAt        DateTime?
+  collectedAt        DateTime @default(now())
+  status             String   @default("new") // new, saved, read, archived
+  tags               String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  sourceId   String
+  categoryId String?
+
+  source     Source              @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  category   Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  history    ReadingHistory[]
+  recommendations DailyRecommendation[]
+
+  @@index([sourceId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([collectedAt])
+  @@map("articles")
+}
+
+model ReadingHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  articleId    String
+  openedAt     DateTime?
+  completedAt  DateTime?
+  rating       String?  // dislike, neutral, like
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([articleId])
+  @@index([completedAt])
+  @@map("reading_history")
+}
+
+model DailyRecommendation {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@unique([userId, articleId])
+  @@index([userId])
+  @@index([date])
+  @@map("daily_recommendations")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
