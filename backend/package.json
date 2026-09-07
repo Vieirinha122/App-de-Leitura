@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "prisma generate && tsc && tsc-alias",
+    "build": "prisma generate && tsc && tsc-alias -f",
     "postinstall": "prisma generate",
     "start": "node dist/app.js",
     "lint": "eslint src --ext .ts",
