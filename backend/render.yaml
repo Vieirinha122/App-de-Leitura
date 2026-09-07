@@ -1,0 +1,37 @@
+# Render deployment config (render.yaml)
+# 1. Connect repo at render.com → New → Blueprint
+# 2. render.yaml will be detected automatically
+# 3. Set env vars in Render dashboard (secrets)
+
+services:
+  - type: web
+    name: daily-read-api
+    runtime: node
+    plan: starter  # free tier available
+    region: oregon  # or frankfurt for EU
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: LOG_LEVEL
+        value: info
+      # Set these as secrets in Render dashboard (not in YAML):
+      # - DATABASE_URL (from Neon)
+      # - JWT_SECRET
+      # - JWT_REFRESH_SECRET
+      # - COOKIE_SECRET
+      # - CORS_ORIGIN=https://dailyread.app
+
+# Optional: PostgreSQL managed by Render (if not using Neon)
+# databases:
+#   - name: daily-read-db
+#     databaseName: daily_read
+#     user: daily_read
+#     plan: starter
