@@ -1,4 +1,4 @@
-import { parseApiError, type ApiError } from './errors'
+import { parseApiError } from './errors'
 
 export type ApiResult<T> = {
   data: T

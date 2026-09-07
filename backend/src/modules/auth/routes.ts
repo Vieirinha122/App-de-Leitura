@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import { createAccessToken, createRefreshToken, verifyRefreshToken, storeRefreshToken, revokeRefreshToken } from '@/lib/auth/tokens'
 import { setAuthCookies, clearAuthCookies } from '@/lib/auth/cookies'
 import { UnauthorizedError, ValidationError } from '@/lib/errors/handler'
+import { requireAuth } from '@/lib/auth/plugin'
 
 const loginSchema = z.object({
   body: z.object({
@@ -42,7 +43,7 @@ export async function authRoutes(app: FastifyInstance) {
       summary: 'Registrar novo usuário'
     }
   }, async (request, reply) => {
-    const { name, email, password } = request.body
+    const { name, email, password } = request.body as z.infer<typeof registerSchema>['body']
 
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
@@ -72,7 +73,7 @@ export async function authRoutes(app: FastifyInstance) {
       summary: 'Login do usuário'
     }
   }, async (request, reply) => {
-    const { email, password } = request.body
+    const { email, password } = request.body as z.infer<typeof loginSchema>['body']
 
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) {
@@ -130,7 +131,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Verifica se o token existe e não foi revogado
     const isValid = await prisma.refreshToken.findUnique({ where: { token: refreshToken } })
-      .then(t => !!t && !t.revokedAt && t.expiresAt > new Date())
+      .then((t: any) => !!t && !t.revokedAt && t.expiresAt > new Date())
     if (!isValid) {
       throw new UnauthorizedError('Refresh token revogado ou expirado')
     }
@@ -154,7 +155,7 @@ export async function authRoutes(app: FastifyInstance) {
       summary: 'Obter usuário autenticado',
       security: [{ cookieAuth: [] }]
     },
-    preHandler: [app.authenticate]
+    preHandler: [requireAuth]
   }, async (request) => {
     const user = await prisma.user.findUnique({
       where: { id: request.user!.id },

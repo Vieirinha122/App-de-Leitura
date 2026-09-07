@@ -30,7 +30,7 @@
   }
 
   body {
-    @apply font-ui text-ink-900 bg-ink-50 body;
+    @apply font-ui text-ink-900 bg-ink-50;
   }
 
   /* Selection style */

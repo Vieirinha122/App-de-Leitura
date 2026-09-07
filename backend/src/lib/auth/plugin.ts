@@ -1,9 +1,19 @@
-import { FastifyInstance } from 'fastify'
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import { UnauthorizedError } from '@/lib/errors/handler'
+import { PrismaClient } from '@prisma/client'
+
+import '@fastify/jwt'
+
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    user: { id: string; email: string }
+  }
+}
 
 declare module 'fastify' {
-  interface FastifyRequest {
-    user?: { id: string; email: string }
+  interface FastifyInstance {
+    prisma: PrismaClient
+    optionalAuth: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
   }
 }
 
@@ -51,7 +61,7 @@ export async function authPlugin(app: FastifyInstance) {
   })
 
   // Decorator for optional auth (doesn't throw if no token)
-  app.decorate('optionalAuth', async (request: FastifyInstance['request'], reply: FastifyInstance['reply']) => {
+  app.decorate('optionalAuth', async (request: FastifyRequest, reply: FastifyReply) => {
     const accessToken = request.cookies.accessToken || request.headers.authorization?.replace('Bearer ', '')
     if (!accessToken) return
 
@@ -69,7 +79,7 @@ export async function authPlugin(app: FastifyInstance) {
 }
 
 // Decorator para rotas que requerem autenticação
-export async function requireAuth(request: FastifyInstance['request'], reply: FastifyInstance['reply']) {
+export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
   if (!request.user) {
     throw new UnauthorizedError('Autenticação necessária')
   }

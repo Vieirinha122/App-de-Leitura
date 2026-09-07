@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { apiFetchVoid } from '@/lib/api/client'
+import { apiFetch, apiFetchVoid } from '@/lib/api/client'
 
 export type User = {
   id: string

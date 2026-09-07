@@ -38,6 +38,7 @@
     "vitest": "^2.0.5",
     "@testing-library/react": "^16.0.0",
     "@testing-library/jest-dom": "^6.4.8",
-    "jsdom": "^24.1.1"
+    "jsdom": "^24.1.1",
+    "@tanstack/react-query-devtools": "^5.51.15"
   }
 }

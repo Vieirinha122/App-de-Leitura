@@ -1,5 +1,7 @@
 // Domain types matching the Prisma schema
 
+export type Rating = 'dislike' | 'neutral' | 'like'
+
 export type Category = {
   id: string
   name: string

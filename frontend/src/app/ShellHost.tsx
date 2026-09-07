@@ -1,13 +1,14 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Navigation from '@/components/Navigation'
 import { useAuthStore } from '@/lib/stores/authStore'
 
 export default function ShellHost() {
-  const { isAuthenticated, checkAuth } = useAuthStore()
+  const { checkAuth } = useAuthStore()
 
-  // Check auth on mount
-  // In a real app, this would be done in a layout effect or route loader
-  // For now, we rely on the store's persisted state
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   return (
     <div className="min-h-screen flex flex-col bg-ink-50">

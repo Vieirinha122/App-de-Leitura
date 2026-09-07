@@ -1,6 +1,7 @@
 import { FastifyError, FastifyReply, FastifyRequest } from 'fastify'
 import { ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library'
 
 export class AppError extends Error {
   constructor(
@@ -69,7 +70,7 @@ export function errorHandler(error: FastifyError, request: FastifyRequest, reply
   }
 
   // Prisma errors
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+  if (error instanceof PrismaClientKnownRequestError) {
     if (error.code === 'P2002') {
       const target = (error.meta?.target as string[])?.join(', ') ?? 'campo'
       return reply.status(409).send({

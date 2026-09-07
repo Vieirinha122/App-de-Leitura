@@ -17,6 +17,7 @@ model User {
 
   readingHistory   ReadingHistory[]
   dailyRecommendations DailyRecommendation[]
+  refreshTokens    RefreshToken[]
 
   @@map("users")
 }
