@@ -33,6 +33,12 @@ app.decorate('prisma', prisma)
 app.setValidatorCompiler(validatorCompiler)
 app.setSerializerCompiler(serializerCompiler)
 
+// Rota raiz 
+
+app.get('/', (request, reply) => {
+  reply.send("Rodando")
+})
+
 // Security & basics
 await app.register(fastifyHelmet, {
   contentSecurityPolicy: env.NODE_ENV === 'production' ? undefined : false
