@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env TZ=America/Sao_Paulo tsx watch src/app.ts",
-    "build": "cross-env TZ=America/Sao_Paulo prisma generate && tsc && tsc-alias -f",
+    "build": "prisma generate && tsc && tsc-alias -f",
     "postinstall": "prisma generate",
-    "start": "cross-env TZ=America/Sao_Paulo node dist/app.js",
+    "start": "node dist/app.js",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest",
