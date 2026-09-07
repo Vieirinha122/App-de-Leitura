@@ -15,7 +15,7 @@ const AUTH_SKIP_PATHS = new Set([
 ])
 
 function apiBase(): string {
-  return import.meta.env.VITE_API_BASE_URL ?? '/api'
+  return import.meta.env.VITE_API_BASE_URL ?? ''
 }
 
 function isAuthSkipPath(path: string): boolean {

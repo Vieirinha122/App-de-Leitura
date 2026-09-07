@@ -1,3 +1,5 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import 'dotenv/config'
 import Fastify from 'fastify'
 import { fastifyCors } from '@fastify/cors'
@@ -120,6 +122,7 @@ export async function start() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+if (isMain) {
   start()
 }

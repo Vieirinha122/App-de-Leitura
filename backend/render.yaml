@@ -22,6 +22,8 @@ services:
         value: "0.0.0.0"
       - key: LOG_LEVEL
         value: info
+      - key: TZ
+        value: America/Sao_Paulo
       # Set these as secrets in Render dashboard (not in YAML):
       # - DATABASE_URL (from Neon)
       # - JWT_SECRET

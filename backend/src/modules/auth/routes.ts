@@ -61,7 +61,12 @@ export async function authRoutes(app: FastifyInstance) {
     await storeRefreshToken(user.id, refreshToken)
     setAuthCookies(reply, accessToken, refreshToken)
 
-    return reply.status(201).send({ user })
+    return reply.status(201).send({
+      user: {
+        ...user,
+        createdAt: user.createdAt.toISOString()
+      }
+    })
   })
 
   // POST /api/v1/auth/login

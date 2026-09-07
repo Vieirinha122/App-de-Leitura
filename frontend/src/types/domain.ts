@@ -2,6 +2,13 @@
 
 export type Rating = 'dislike' | 'neutral' | 'like'
 
+export type User = {
+  id: string
+  name: string
+  email: string
+  createdAt: string
+}
+
 export type Category = {
   id: string
   name: string

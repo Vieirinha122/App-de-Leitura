@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import fp from 'fastify-plugin'
 import { UnauthorizedError } from '@/lib/errors/handler'
 import { PrismaClient } from '@prisma/client'
 
@@ -17,7 +18,7 @@ declare module 'fastify' {
   }
 }
 
-export async function authPlugin(app: FastifyInstance) {
+export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
   if (!app.hasRequestDecorator('user')) {
     app.decorateRequest('user', null)
   }
@@ -79,7 +80,7 @@ export async function authPlugin(app: FastifyInstance) {
       }
     })
   }
-}
+})
 
 // Decorator para rotas que requerem autenticação
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {

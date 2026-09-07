@@ -45,12 +45,11 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          await apiFetchVoid('/api/v1/auth/login', {
+          const { data } = await apiFetch<{ user: User }>('/api/v1/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password })
           })
-          // After login, checkAuth will fetch user
-          await get().checkAuth()
+          set({ user: data.user, isAuthenticated: true })
         } catch (error) {
           if (error instanceof Error) {
             set({ error: error.message })
@@ -64,12 +63,11 @@ export const useAuthStore = create<AuthState>()(
       register: async (name, email, password) => {
         set({ isLoading: true, error: null })
         try {
-          await apiFetchVoid('/api/v1/auth/register', {
+          const { data } = await apiFetch<{ user: User }>('/api/v1/auth/register', {
             method: 'POST',
             body: JSON.stringify({ name, email, password })
           })
-          // After register, login
-          await get().login(email, password)
+          set({ user: data.user, isAuthenticated: true })
         } catch (error) {
           if (error instanceof Error) {
             set({ error: error.message })
