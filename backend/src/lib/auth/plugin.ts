@@ -18,7 +18,9 @@ declare module 'fastify' {
 }
 
 export async function authPlugin(app: FastifyInstance) {
-  app.decorateRequest('user', null)
+  if (!app.hasRequestDecorator('user')) {
+    app.decorateRequest('user', null)
+  }
 
   app.addHook('preHandler', async (request, reply) => {
     // Skip auth for public routes
@@ -60,22 +62,23 @@ export async function authPlugin(app: FastifyInstance) {
     }
   })
 
-  // Decorator for optional auth (doesn't throw if no token)
-  app.decorate('optionalAuth', async (request: FastifyRequest, reply: FastifyReply) => {
-    const accessToken = request.cookies.accessToken || request.headers.authorization?.replace('Bearer ', '')
-    if (!accessToken) return
+  if (!app.hasDecorator('optionalAuth')) {
+    app.decorate('optionalAuth', async (request: FastifyRequest, reply: FastifyReply) => {
+      const accessToken = request.cookies.accessToken || request.headers.authorization?.replace('Bearer ', '')
+      if (!accessToken) return
 
-    try {
-      const decoded = app.jwt.verify(accessToken) as { userId: string }
-      const user = await app.prisma.user.findUnique({
-        where: { id: decoded.userId },
-        select: { id: true, email: true }
-      })
-      if (user) request.user = { id: user.id, email: user.email }
-    } catch {
-      // Silently ignore - optional auth
-    }
-  })
+      try {
+        const decoded = app.jwt.verify(accessToken) as { userId: string }
+        const user = await app.prisma.user.findUnique({
+          where: { id: decoded.userId },
+          select: { id: true, email: true }
+        })
+        if (user) request.user = { id: user.id, email: user.email }
+      } catch {
+        // Silently ignore - optional auth
+      }
+    })
+  }
 }
 
 // Decorator para rotas que requerem autenticação
