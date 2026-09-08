@@ -101,7 +101,7 @@ export async function authRoutes(app: FastifyInstance) {
   // POST /api/v1/auth/logout
   app.post('/logout', {
     schema: {
-      response: { 204: z.undefined() },
+      response: { 200: z.object({ success: z.boolean() }) },
       tags: ['Auth'],
       summary: 'Logout do usuário'
     }
@@ -115,7 +115,7 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
     clearAuthCookies(reply)
-    return reply.status(204).send()
+    return { success: true }
   })
 
   // POST /api/v1/auth/refresh
