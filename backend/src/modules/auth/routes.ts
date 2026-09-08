@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import { createAccessToken, createRefreshToken, verifyRefreshToken, storeRefreshToken, revokeRefreshToken } from '@/lib/auth/tokens'
-import { setAuthCookies, clearAuthCookies } from '@/lib/auth/cookies'
+import { setAuthCookies } from '@/lib/auth/cookies'
 import { UnauthorizedError, ValidationError } from '@/lib/errors/handler'
 import { requireAuth } from '@/lib/auth/plugin'
 
@@ -96,26 +96,6 @@ export async function authRoutes(app: FastifyInstance) {
     setAuthCookies(reply, accessToken, refreshToken)
 
     return { user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString() } }
-  })
-
-  // POST /api/v1/auth/logout
-  app.post('/logout', {
-    schema: {
-      response: { 200: z.object({ success: z.boolean() }) },
-      tags: ['Auth'],
-      summary: 'Logout do usuário'
-    }
-  }, async (request, reply) => {
-    const refreshToken = request.cookies?.refreshToken
-    clearAuthCookies(reply)
-
-    if (refreshToken) {
-      void revokeRefreshToken(refreshToken).catch((error) => {
-        request.log.warn({ err: error }, 'Failed to revoke refresh token during logout')
-      })
-    }
-
-    return { success: true }
   })
 
   // POST /api/v1/auth/refresh

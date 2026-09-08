@@ -47,7 +47,7 @@ async function authorizedRequest(
   if (!headers.has('Accept')) {
     headers.set('Accept', 'application/json')
   }
-  if (!headers.has('Content-Type') && !(init.body instanceof FormData)) {
+  if (init.body !== undefined && !headers.has('Content-Type') && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
   }
 

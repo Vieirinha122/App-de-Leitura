@@ -81,7 +81,10 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true })
         try {
-          await apiFetchVoid('/api/v1/auth/logout', { method: 'POST' })
+          await apiFetchVoid('/api/v1/auth/logout', {
+            method: 'POST',
+            body: JSON.stringify({})
+          })
         } finally {
           set({ user: null, isAuthenticated: false, isLoading: false, error: null })
         }

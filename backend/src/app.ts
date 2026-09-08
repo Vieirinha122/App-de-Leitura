@@ -55,6 +55,21 @@ await app.register(fastifyRateLimit, {
   timeWindow: '1 minute',
   hook: 'onRequest'
 })
+
+// Keep logout available even if a stale/malformed cookie breaks cookie parsing.
+app.post('/api/v1/auth/logout', async (_request, reply) => {
+  const secure = env.NODE_ENV === 'production' ? '; Secure; SameSite=None' : '; SameSite=Lax'
+  const expired = 'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly'
+
+  reply.header('X-Daily-Read-API-Version', 'logout-early-2026-09-08')
+  reply.header('Set-Cookie', [
+    `accessToken=; ${expired}${secure}`,
+    `refreshToken=; ${expired}${secure}`
+  ])
+
+  return { success: true }
+})
+
 await app.register(fastifyCookie, {
   secret: env.COOKIE_SECRET,
   parseOptions: { 
