@@ -57,7 +57,11 @@ await app.register(fastifyRateLimit, {
 })
 await app.register(fastifyCookie, {
   secret: env.COOKIE_SECRET,
-  parseOptions: { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax' }
+  parseOptions: { 
+    httpOnly: true, 
+    secure: env.NODE_ENV === 'production', 
+    sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax' 
+  }
 })
 await app.register(fastifyJwt, {
   secret: env.JWT_SECRET,
