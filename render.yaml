@@ -1,0 +1,24 @@
+# Render deployment config for the backend API.
+# Connect the repository as a Blueprint, or copy these commands into a Web Service.
+
+services:
+  - type: web
+    name: daily-read-api
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build:backend
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: LOG_LEVEL
+        value: info
+      - key: TZ
+        value: America/Sao_Paulo
