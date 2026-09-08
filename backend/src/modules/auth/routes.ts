@@ -101,14 +101,18 @@ export async function authRoutes(app: FastifyInstance) {
   // POST /api/v1/auth/logout
   app.post('/logout', {
     schema: {
-      response: { 204: z.null() },
+      response: { 204: z.undefined() },
       tags: ['Auth'],
       summary: 'Logout do usuário'
     }
   }, async (request, reply) => {
-    const refreshToken = request.cookies.refreshToken
+    const refreshToken = request.cookies?.refreshToken
     if (refreshToken) {
-      await revokeRefreshToken(refreshToken)
+      try {
+        await revokeRefreshToken(refreshToken)
+      } catch {
+        // Ignore revocation error on logout
+      }
     }
     clearAuthCookies(reply)
     return reply.status(204).send()
