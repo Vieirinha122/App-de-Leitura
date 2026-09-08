@@ -9,6 +9,7 @@ export type ApiResult<T> = {
 const AUTH_SKIP_PATHS = new Set([
   '/api/v1/auth/login',
   '/api/v1/auth/register',
+  '/api/v1/auth/logout',
   '/api/v1/auth/refresh',
   '/api/v1/auth/forgot-password',
   '/api/v1/auth/reset-password'
@@ -121,8 +122,12 @@ export async function apiFetchBlob(path: string, init: RequestInit = {}): Promis
   }
 }
 
-export async function apiFetchVoid(path: string, init: RequestInit = {}): Promise<void> {
-  await apiFetch<undefined>(path, init)
+export async function apiFetchVoid(
+  path: string,
+  init: RequestInit = {},
+  options: { retryOnUnauthorized?: boolean } = {}
+): Promise<void> {
+  await apiFetch<undefined>(path, init, options)
 }
 
 // Convenience methods

@@ -107,14 +107,14 @@ export async function authRoutes(app: FastifyInstance) {
     }
   }, async (request, reply) => {
     const refreshToken = request.cookies?.refreshToken
-    if (refreshToken) {
-      try {
-        await revokeRefreshToken(refreshToken)
-      } catch {
-        // Ignore revocation error on logout
-      }
-    }
     clearAuthCookies(reply)
+
+    if (refreshToken) {
+      void revokeRefreshToken(refreshToken).catch((error) => {
+        request.log.warn({ err: error }, 'Failed to revoke refresh token during logout')
+      })
+    }
+
     return { success: true }
   })
 
