@@ -117,14 +117,14 @@
 **Objetivo:** Gerenciar fontes e popular artigos via RSS.
 
 ### Backend
-- [ ] CRUD completo `/api/v1/sources` (list, get, create, update, delete)
-- [ ] Job BullMQ `collect:rss` — roda a cada 6h, parseia feeds, upsert artigos
-- [ ] Deduplicação por URL + source
-- [ ] `POST /api/v1/sources/:id/sync` — trigger manual de coleta
+- [x] CRUD completo `/api/v1/sources` (list, get, create, update, delete)
+- [ ] Job agendado `collect:rss` — pendente; Redis/BullMQ foi removido do projeto
+- [x] Deduplicação por URL global ao importar RSS
+- [x] `POST /api/v1/sources/:id/sync` — trigger manual de coleta
 
 ### Frontend
-- [ ] Módulo `fontes`: tabela com ações, modal create/edit, toggle enabled, botão sync
-- [ ] Feedback de último sync + contagem de artigos novos
+- [x] Módulo `fontes`: tabela com ações, modal create/edit, toggle enabled, botão sync
+- [x] Feedback de sync + contagem de artigos importados/ignorados via toast
 
 ### Critério de aceite
 - Adiciona feed RSS válido → artigos aparecem na biblioteca após sync

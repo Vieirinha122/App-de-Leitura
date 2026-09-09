@@ -78,6 +78,21 @@ Precisamos escolher e executar uma estratégia:
 
 A data será aproximada, pois o momento real da leitura não foi persistido.
 
+### FB-007 — Atualização automática da tela de Fontes
+**Status:** pendente  
+**Área:** Fontes / TanStack Query  
+**Prioridade:** alta
+
+Após criar, editar, excluir ou sincronizar uma fonte, a tela só deve refletir a alteração depois de um F5. Corrigir invalidando ou atualizando a query `sources` após cada mutação.
+
+Comportamento esperado:
+
+- nova fonte aparece sem refresh manual;
+- edição atualiza nome, tipo, URL e status imediatamente;
+- exclusão remove a linha imediatamente;
+- sync atualiza quantidade de artigos sem F5;
+- mostrar loading, sucesso e erro nas ações.
+
 ## Decisões de implementação
 
 - Regra de negócio fica no backend: marcar como lido sempre atualiza artigo e histórico em transação.
