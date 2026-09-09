@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Fundo ink-50 -->
+  <rect width="512" height="512" rx="128" fill="#fafaf9"/>
+  
+  <!-- Borda leve em ink-200 -->
+  <rect width="510" height="510" x="1" y="1" rx="127" fill="none" stroke="#e7e5e4" stroke-width="4"/>
+
+  <!-- Letra D Serifada (Estilo Fraunces / Georgia) em ink-900 -->
+  <text 
+    x="230" 
+    y="340" 
+    font-family="'Fraunces', 'Georgia', serif" 
+    font-size="320" 
+    font-weight="700" 
+    fill="#1c1917" 
+    text-anchor="middle">D</text>
+
+  <!-- Ponto / Marcador em Amber-500 -->
+  <circle cx="385" cy="315" r="32" fill="#f59e0b" />
+</svg>

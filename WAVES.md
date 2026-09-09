@@ -33,8 +33,8 @@
 - [x] `package.json` raiz com workspaces + scripts `dev`, `build`, `db:*`
 - [x] `.env.example` front + back
 - [x] README com comandos
-- [ ] Neon Postgres (produção) + Postgres local opcional via instalador nativo
-- [ ] Redis local opcional (para BullMQ) — pode usar Upstash em produção
+- [x] Neon Postgres (produção) + Postgres local opcional via instalador nativo
+- [x] Redis local opcional (para BullMQ) — pode usar Upstash em produção
 
 ---
 
@@ -42,20 +42,20 @@
 **Objetivo:** Login/registro/logout funcionando, usuário persistido, rota protegida.
 
 ### Backend
-- [ ] `POST /api/v1/auth/register` — cria usuário, hash Argon2id, seta cookies (access + refresh)
-- [ ] `POST /api/v1/auth/login` — valida credenciais, seta cookies
-- [ ] `POST /api/v1/auth/logout` — limpa cookies, invalida refresh token no banco
-- [ ] `GET /api/v1/auth/me` — retorna usuário do access token
-- [ ] `POST /api/v1/auth/refresh` — rotação de access token (refresh token em cookie HttpOnly, rotação + reuse detection)
-- [ ] Middleware `requireAuth` + `optionalAuth`
+- [x] `POST /api/v1/auth/register` — cria usuário, hash Argon2id, seta cookies (access + refresh)
+- [x] `POST /api/v1/auth/login` — valida credenciais, seta cookies
+- [x] `POST /api/v1/auth/logout` — limpa cookies, invalida refresh token no banco
+- [x] `GET /api/v1/auth/me` — retorna usuário do access token
+- [x] `POST /api/v1/auth/refresh` — rotação de access token (refresh token em cookie HttpOnly, rotação + reuse detection)
+- [x] Middleware `requireAuth` + `optionalAuth`
 - [ ] Teste de contrato (supertest) para cada endpoint
 
 ### Frontend
-- [ ] `authStore.checkAuth()` chamado no bootstrap
-- [ ] Tela de Login/Registro (rota pública fora do ShellHost)
-- [ ] Redirect automático pós-login para `/hoje`
-- [ ] Logout no header (desktop) / menu (mobile)
-- [ ] Toast de erro/sucesso via `uiStore`
+- [x] `authStore.checkAuth()` chamado no bootstrap
+- [x] Tela de Login/Registro (rota pública fora do ShellHost)
+- [x] Redirect automático pós-login para `/hoje`
+- [x] Logout no header (desktop) / menu (mobile)
+- [x] Toast de erro/sucesso via `uiStore`
 
 ### Critério de aceite
 - Usuário se registra, loga, navega entre abas, faz refresh da página → continua logado
@@ -67,19 +67,20 @@
 **Objetivo:** Tela principal exibindo artigo do dia + ações (abrir, marcar lido, avaliar).
 
 ### Backend
-- [ ] `GET /api/v1/daily` — retorna `DailyRecommendation` de hoje para o usuário autenticado
-- [ ] Lógica de recomendação v1: primeiro artigo `status=new` não lido, rotacionando categoria/fonte
-- [ ] `POST /api/v1/daily/:id/open` — registra `openedAt` no `ReadingHistory`
-- [ ] `POST /api/v1/daily/:id/complete` — registra `completedAt` + `rating` + `notes`
-- [ ] Seed: 8 fontes do plano + 20-30 artigos mockados distribuídos em categorias
+- [x] `GET /api/v1/daily` — retorna `DailyRecommendation` de hoje para o usuário autenticado
+- [x] Lógica de recomendação v1: primeiro artigo `status=new` não lido, rotacionando categoria/fonte
+- [x] `POST /api/v1/daily/:id/open` — registra `openedAt` no `ReadingHistory`
+- [x] `POST /api/v1/daily/:id/complete` — registra `completedAt` + `rating` + `notes`
+- [x] Seed: 8 fontes do plano + 26 artigos mockados distribuídos em 7 categorias
+- [x] `GET /api/v1/daily/stats` — streak atual/maior, contadores mês/ano, tempo total, breakdown por categoria/fonte/mês
 
 ### Frontend
-- [ ] Módulo `hoje` com `Hoje.tsx` + `service.ts` + `index.ts`
-- [ ] `useDailyRecommendation` hook (TanStack Query)
-- [ ] UI: saudação + categoria + artigo (título, fonte, tempo, tags) + botões
-- [ ] `Rating` component integrado
-- [ ] Navegação para dias anteriores (setas ou calendar picker)
-- [ ] Streak counter no header da tela
+- [x] Módulo `hoje` com `Hoje.tsx` + `service.ts` + `index.ts`
+- [x] `useDailyRecommendation` hook (TanStack Query)
+- [x] UI: saudação + categoria + artigo (título, fonte, tempo, tags) + botões
+- [x] `Rating` component integrado
+- [x] Navegação para dias anteriores (setas ou calendar picker)
+- [x] Streak counter no header da tela
 
 ### Critério de aceite
 - Abre app → vê leitura do dia
@@ -215,5 +216,5 @@ docs: add wave-1 acceptance criteria
 ---
 
 ## Próxima Ação Imediata
-> **Você está na ONDA 0.** O commit atual contém apenas a casca.
-> Próximo passo: `npm install` nos workspaces → `npm run dev` → validar que front (3000) e back (4000) sobem sem erro.
+> **Você está na ONDA 3.** A ONDA 0, 1 e 2 estão completas.
+> Próximo passo: implementar `GET /api/v1/articles` + módulo `biblioteca` no frontend.
