@@ -16,6 +16,7 @@ import { env } from '@/lib/config/env'
 import { errorHandler } from '@/lib/errors/handler'
 import { authRoutes } from '@/modules/auth/routes'
 import { dailyRoutes } from '@/modules/daily-recommendation/routes'
+import { articlesRoutes } from '@/modules/articles/routes'
 import { healthRoutes } from '@/lib/routes/health'
 import { authPlugin } from '@/lib/auth/plugin'
 import { prisma } from '@/lib/prisma'
@@ -119,12 +120,7 @@ app.setErrorHandler(errorHandler)
 await app.register(healthRoutes, { prefix: '/api' })
 await app.register(authRoutes, { prefix: '/api/v1/auth' })
 await app.register(dailyRoutes, { prefix: '/api/v1/daily' })
-
-// TODO: Register other module routes here
-// await app.register(articlesRoutes, { prefix: '/api/v1/articles' })
-// await app.register(sourcesRoutes, { prefix: '/api/v1/sources' })
-// await app.register(categoriesRoutes, { prefix: '/api/v1/categories' })
-// await app.register(readingHistoryRoutes, { prefix: '/api/v1/history' })
+await app.register(articlesRoutes, { prefix: '/api/v1' })
 
 // 404 handler
 app.setNotFoundHandler((request, reply) => {

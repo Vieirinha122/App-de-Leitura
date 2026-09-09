@@ -94,16 +94,17 @@
 **Objetivo:** Listar/filtrar artigos salvos/lidos + métricas de hábito.
 
 ### Backend
-- [ ] `GET /api/v1/articles` — paginado, filtros (categoria, fonte, status, rating, search)
-- [ ] `GET /api/v1/articles/:id` — detalhe
-- [ ] `PATCH /api/v1/articles/:id` — update status (save/unsave/archive)
-- [ ] `GET /api/v1/history` — leituras concluídas com paginação + filtros por mês
-- [ ] `GET /api/v1/stats` — streak atual/maior, contadores mês/ano, tempo total, breakdown por categoria/fonte/mês
+- [x] `GET /api/v1/articles` — paginado, filtros (categoria, fonte, status, rating, search)
+- [x] `GET /api/v1/articles/:id` — detalhe
+- [x] `PATCH /api/v1/articles/:id` — update status (save/unsave/archive)
+- [x] `GET /api/v1/history` — leituras concluídas com paginação + filtros por mês
+- [x] `GET /api/v1/daily/stats` — streak atual/maior, contadores mês/ano, tempo total, breakdown por categoria/fonte/mês
 
 ### Frontend
-- [ ] Módulo `biblioteca`: grid/list toggle, filtros colapsáveis, status chips
-- [ ] Módulo `historico`: timeline por mês, cards de leitura, painel de stats
-- [ ] `useArticles`, `useHistory`, `useStats` hooks
+- [x] Módulo `biblioteca`: grid/list toggle, busca, filtros de status, status chips
+- [x] Módulo `historico`: timeline, cards de leitura, painel de stats
+- [x] Services tipados para artigos, histórico e stats
+- [ ] `useArticles`, `useHistory`, `useStats` hooks dedicados — melhoria de organização, sem impacto funcional imediato; movido para `FEEDBACK_BACKLOG.md`
 
 ### Critério de aceite
 - Biblioteca mostra todos os artigos com filtros funcionando
@@ -217,4 +218,7 @@ docs: add wave-1 acceptance criteria
 
 ## Próxima Ação Imediata
 > **Você está na ONDA 3.** A ONDA 0, 1 e 2 estão completas.
-> Próximo passo: implementar `GET /api/v1/articles` + módulo `biblioteca` no frontend.
+> A base da ONDA 3 foi implementada; falta validação em runtime e refinamento de cache/feedback.
+> Próximo passo: validar a Biblioteca + Histórico no Render/Vercel.
+>
+> Feedbacks de UX e sincronização sem F5 estão documentados em [`FEEDBACK_BACKLOG.md`](FEEDBACK_BACKLOG.md).

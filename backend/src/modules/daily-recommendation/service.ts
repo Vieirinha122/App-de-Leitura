@@ -201,23 +201,32 @@ export async function markArticleCompleted(
   rating: 'dislike' | 'neutral' | 'like',
   notes?: string
 ): Promise<void> {
-  await prisma.readingHistory.upsert({
-    where: {
-      userId_articleId: { userId, articleId }
-    },
-    update: {
-      completedAt: new Date(),
-      rating,
-      notes
-    },
-    create: {
-      userId,
-      articleId,
-      completedAt: new Date(),
-      rating,
-      notes
-    }
-  })
+  const completedAt = new Date()
+
+  await prisma.$transaction([
+    prisma.readingHistory.upsert({
+      where: {
+        userId_articleId: { userId, articleId }
+      },
+      update: {
+        completedAt,
+        rating,
+        notes
+      },
+      create: {
+        userId,
+        articleId,
+        completedAt,
+        rating,
+        notes
+      }
+    }),
+    // A conclusão é uma transição de domínio: o artigo fica disponível como "lido" na Biblioteca.
+    prisma.article.update({
+      where: { id: articleId },
+      data: { status: 'read' }
+    })
+  ])
 }
 
 export async function getUserStats(userId: string) {
