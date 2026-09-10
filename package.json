@@ -22,6 +22,9 @@
     "db:seed": "npm run db:seed --workspace=backend",
     "db:studio": "npm run db:studio --workspace=backend"
   },
+  "dependencies": {
+    "node-cron": "^3.0.3"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
