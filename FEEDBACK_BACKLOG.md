@@ -12,7 +12,7 @@ Este arquivo registra problemas percebidos durante a validação manual. Ele fic
 Extrair `useArticles`, `useHistory` e `useStats` dos componentes de Biblioteca e Histórico. Atualmente os componentes usam `useQuery` co-localizado. Não é bug de funcionamento; fazer quando houver necessidade de reutilização, invalidação compartilhada ou crescimento dos módulos.
 
 ### FB-001 — Feedback visual ao marcar artigo como lido
-**Status:** pendente  
+**Status:** parcialmente resolvido  
 **Área:** Hoje / Biblioteca  
 **Prioridade:** alta
 
@@ -79,11 +79,11 @@ Precisamos escolher e executar uma estratégia:
 A data será aproximada, pois o momento real da leitura não foi persistido.
 
 ### FB-007 — Atualização automática da tela de Fontes
-**Status:** pendente  
+**Status:** parcialmente resolvido  
 **Área:** Fontes / TanStack Query  
 **Prioridade:** alta
 
-Após criar, editar, excluir ou sincronizar uma fonte, a tela só deve refletir a alteração depois de um F5. Corrigir invalidando ou atualizando a query `sources` após cada mutação.
+Após criar, editar, excluir ou sincronizar uma fonte, a tela precisava de F5 para refletir a alteração. Criação, edição e exclusão já invalidavam `sources`; a sincronização RSS também passou a invalidar `sources` e `articles`. Validar visualmente no ambiente publicado.
 
 Comportamento esperado:
 
@@ -92,6 +92,41 @@ Comportamento esperado:
 - exclusão remove a linha imediatamente;
 - sync atualiza quantidade de artigos sem F5;
 - mostrar loading, sucesso e erro nas ações.
+
+### FB-008 — Classificação automática de artigos RSS
+**Status:** pendente  
+**Área:** RSS / Backend  
+**Prioridade:** média
+
+Artigos importados via RSS podem chegar sem `category` e com `tags` vazias. Criar uma classificação inicial no backend usando tags/metadados do feed e fallback para uma categoria padrão, como `Ideias`, sem empurrar essa regra para o frontend.
+
+### FB-009 — Spinner individual no sync de fontes
+**Status:** pendente  
+**Área:** Fontes / UX  
+**Prioridade:** média
+
+Ao sincronizar uma fonte, o spinner aparece visualmente em todos os registros da tabela. O loading deve ser controlado pelo `sourceId` em sincronização, para que somente a linha clicada mostre o spinner e fique desabilitada.
+
+### FB-010 — Preferir fontes em português e traduzir artigos selecionados
+**Status:** pendente  
+**Área:** RSS / Backend / Produto  
+**Prioridade:** média
+
+A primeira estratégia não será traduzir tudo. Devemos priorizar fontes que já publiquem em português e permitir configurar o idioma preferencial da fonte.
+
+A tradução fica como recurso posterior para artigos relevantes em outros idiomas. Ela não deve ser uma tradução literal automática: o objetivo é preservar o sentido, o contexto técnico e a naturalidade em português.
+
+Antes de implementar, decidir:
+
+- como identificar o idioma do feed/artigo;
+- como priorizar fontes em português;
+- se traduziremos apenas título e resumo ou também o conteúdo completo;
+- como preservar a URL e o texto original;
+- como sinalizar que um conteúdo foi traduzido;
+- quando usar tradução determinística/serviço especializado e quando usar IA;
+- como evitar custo duplicado com cache por URL e idioma;
+- como tratar nomes próprios, termos técnicos, código, comandos e citações;
+- como revisar traduções contextuais sem transformar o app em um tradutor genérico.
 
 ## Decisões de implementação
 

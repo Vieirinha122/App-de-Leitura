@@ -35,7 +35,7 @@ export const useUIStore = create<UIState>((set) => ({
     set((state) => ({ toasts: [...state.toasts, newToast] }))
 
     // Auto-remove
-    const duration = toast.duration ?? 5000
+    const duration = toast.duration ?? 8000
     if (duration > 0) {
       setTimeout(() => {
         set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }))

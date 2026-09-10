@@ -13,9 +13,8 @@ const envSchema = z.object({
   COOKIE_SECRET: z.string().min(32),
 
   CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
-
-  // Redis (opcional para BullMQ)
-  REDIS_URL: z.string().url().optional(),
+  RSS_CRON_ENABLED: z.enum(['true', 'false']).default('false'),
+  RSS_CRON_EXPRESSION: z.string().default('0 */6 * * *'),
 
   // Email (opcional para futuro)
   SMTP_HOST: z.string().optional(),

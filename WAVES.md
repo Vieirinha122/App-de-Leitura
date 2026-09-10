@@ -118,7 +118,7 @@
 
 ### Backend
 - [x] CRUD completo `/api/v1/sources` (list, get, create, update, delete)
-- [ ] Job agendado `collect:rss` — pendente; Redis/BullMQ foi removido do projeto
+- [x] Job agendado `collect:rss` — scheduler opcional com `node-cron`, sem Redis/BullMQ
 - [x] Deduplicação por URL global ao importar RSS
 - [x] `POST /api/v1/sources/:id/sync` — trigger manual de coleta
 

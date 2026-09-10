@@ -21,6 +21,7 @@ import { sourcesRoutes } from '@/modules/sources/routes'
 import { healthRoutes } from '@/lib/routes/health'
 import { authPlugin } from '@/lib/auth/plugin'
 import { prisma } from '@/lib/prisma'
+import { startRssCron } from '@/jobs/rss-cron'
 
 const logger = pino({
   level: env.LOG_LEVEL ?? 'info',
@@ -132,6 +133,7 @@ app.setNotFoundHandler((request, reply) => {
 export async function start() {
   try {
     await app.listen({ port: env.PORT, host: env.HOST })
+    startRssCron(app.log)
     app.log.info(`🚀 Server running at http://${env.HOST}:${env.PORT}`)
     app.log.info(`📚 Swagger UI at http://${env.HOST}:${env.PORT}/docs`)
   } catch (err) {
