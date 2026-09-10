@@ -4,6 +4,20 @@ import { Bookmark, Check, Grid2X2, List, Search } from 'lucide-react'
 import type { Article, ArticleFilters } from '@/types/domain'
 import { fetchArticles, updateArticleStatus } from './service'
 import { useUIStore } from '@/lib/stores/uiStore'
+import { api } from '@/lib/api/client'
+
+type Category = { id: string; name: string }
+type Preference = { kind: 'source' | 'category'; targetId: string; blocked: boolean; weight: number }
+
+async function fetchCategories(): Promise<Category[]> {
+  const { data } = await api.get<Category[]>('/api/v1/categories')
+  return data
+}
+
+async function savePreference(preference: Preference): Promise<Preference> {
+  const { data } = await api.put<Preference>('/api/v1/preferences', preference)
+  return data
+}
 
 function ArticleCard({ article, onStatusChange }: { article: Article; onStatusChange: (article: Article, status: Article['status']) => void }) {
   const statusLabel = { new: 'Novo', saved: 'Salvo', read: 'Lido', archived: 'Arquivado' }[article.status]
@@ -40,6 +54,17 @@ export default function Biblioteca() {
   const [filters, setFilters] = useState<ArticleFilters>({ page: 1, pageSize: 20 })
   const [view, setView] = useState<'grid' | 'list'>('grid')
   const articlesQuery = useQuery({ queryKey: ['articles', filters], queryFn: () => fetchArticles(filters) })
+  const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: fetchCategories })
+  const preferencesQuery = useQuery({ queryKey: ['preferences'], queryFn: async () => (await api.get<Preference[]>('/api/v1/preferences')).data })
+  const preferenceMutation = useMutation({
+    mutationFn: savePreference,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['preferences'] })
+      queryClient.invalidateQueries({ queryKey: ['daily'] })
+      addToast({ type: 'success', title: 'Preferência atualizada' })
+    },
+    onError: () => addToast({ type: 'error', title: 'Erro', message: 'Não foi possível atualizar a preferência' })
+  })
   const mutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Article['status'] }) => updateArticleStatus(id, status),
     onSuccess: () => {
@@ -79,6 +104,25 @@ export default function Biblioteca() {
           <option value="read">Lidos</option>
           <option value="archived">Arquivados</option>
         </select>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-ink-200 bg-white p-4">
+        <p className="mb-3 text-body-sm font-medium text-ink-700">Preferências por categoria</p>
+        <div className="flex flex-wrap gap-2">
+          {(categoriesQuery.data ?? []).map((category) => {
+            const blocked = preferencesQuery.data?.some((item) => item.kind === 'category' && item.targetId === category.id && item.blocked) ?? false
+            return (
+              <button
+                key={category.id}
+                className={blocked ? 'badge-error cursor-pointer' : 'badge-neutral cursor-pointer hover:bg-ink-200'}
+                onClick={() => preferenceMutation.mutate({ kind: 'category', targetId: category.id, blocked: !blocked, weight: 0 })}
+                disabled={preferenceMutation.isPending}
+              >
+                {blocked ? 'Bloqueada: ' : ''}{category.name}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {articlesQuery.isLoading ? <p className="py-12 text-center text-ink-500">Carregando biblioteca...</p> : articles.length === 0 ? <p className="py-12 text-center text-ink-500">Nenhum artigo encontrado.</p> : (

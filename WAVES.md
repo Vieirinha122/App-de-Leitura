@@ -136,14 +136,16 @@
 **Objetivo:** Algoritmo que aprende com avaliações.
 
 ### Backend
-- [ ] Pesos por categoria (baseado em ratings like/neutral/dislike)
-- [ ] Rotação de fontes (evitar mesma fonte 2 dias seguidos)
-- [ ] Preferir tempo de leitura menor em dias úteis
-- [ ] Fallback para escolha manual (admin)
+- [x] Pesos por categoria/fonte (baseado em ratings e preferências)
+- [x] Rotação de fontes (evitar mesma fonte 2 dias seguidos)
+- [x] Preferir tempo de leitura menor em dias úteis
+- [x] Fallback seguro quando não houver candidato ideal
+- [x] Preferências persistidas de fonte/categoria via `/api/v1/preferences` + migration `add_user_preferences`
 
 ### Frontend
-- [ ] Indicador visual de "por que este artigo foi recomendado"
-- [ ] Opção "Não quero ver desta fonte/categoria"
+- [x] Indicador visual de "por que este artigo foi recomendado"
+- [x] Opção de bloquear/desbloquear fonte na tela Fontes
+- [x] Opção de bloquear/desbloquear categoria na Biblioteca
 
 ---
 

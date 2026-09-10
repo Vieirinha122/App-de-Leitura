@@ -9,6 +9,7 @@ export interface DailyRecommendationResult {
   articleId: string
   date: Date
   createdAt: Date
+  reason: string
   article: {
     id: string
     title: string
@@ -68,7 +69,7 @@ export async function getDailyRecommendation(userId: string, date: Date = new Da
     const readingHistory = await prisma.readingHistory.findFirst({
       where: { userId, articleId: recommendation.articleId }
     })
-    return formatRecommendation(recommendation, readingHistory)
+    return formatRecommendation(recommendation, readingHistory, 'Selecionado entre os artigos ainda não lidos')
   }
 
   // No recommendation yet - generate one
@@ -94,7 +95,7 @@ export async function getDailyRecommendation(userId: string, date: Date = new Da
     }
   })
 
-  return formatRecommendation(recommendation, null)
+  return formatRecommendation(recommendation, null, 'Selecionado com base no histórico e na rotação de fontes')
 }
 
 export async function getPreviousRecommendation(userId: string, date: Date): Promise<DailyRecommendationResult | null> {
@@ -122,61 +123,95 @@ export async function getPreviousRecommendation(userId: string, date: Date): Pro
   const readingHistory = await prisma.readingHistory.findFirst({
     where: { userId, articleId: recommendation.articleId }
   })
-  return formatRecommendation(recommendation, readingHistory)
+  return formatRecommendation(recommendation, readingHistory, 'Leitura recomendada em um dia anterior')
 }
 
 async function findNextArticleForUser(userId: string) {
-  // Get user's reading history to know which articles they've read
-  const readArticleIds = await prisma.readingHistory.findMany({
+  const [readHistory, recommendations, lastRecommendation, preferences] = await Promise.all([
+    prisma.readingHistory.findMany({
+      where: { userId, completedAt: { not: null } },
+      select: { articleId: true, rating: true, article: { select: { sourceId: true, categoryId: true } } }
+    }),
+    prisma.dailyRecommendation.findMany({
+      where: { userId },
+      select: { articleId: true }
+    }),
+    prisma.dailyRecommendation.findFirst({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      include: { article: { select: { sourceId: true } } }
+    }),
+    prisma.userPreference.findMany({ where: { userId } })
+  ])
+
+  const excludedIds = [...new Set([
+    ...readHistory.map((item) => item.articleId),
+    ...recommendations.map((item) => item.articleId)
+  ])]
+
+  const blockedSources = new Set(preferences.filter((item) => item.kind === 'source' && item.blocked).map((item) => item.targetId))
+  const blockedCategories = new Set(preferences.filter((item) => item.kind === 'category' && item.blocked).map((item) => item.targetId))
+
+  const candidates = await prisma.article.findMany({
     where: {
-      userId,
-      completedAt: { not: null }
+      status: 'new',
+      id: { notIn: excludedIds.length > 0 ? excludedIds : undefined },
+      sourceId: { notIn: [...blockedSources] },
+      categoryId: { notIn: [...blockedCategories] }
     },
-    select: { articleId: true }
+    include: { source: true, category: true },
+    orderBy: { collectedAt: 'asc' },
+    take: 100
   })
-  const readIds = readArticleIds.map(r => r.articleId)
 
-  // Get articles already recommended to this user
-  const recommendedArticleIds = await prisma.dailyRecommendation.findMany({
-    where: { userId },
-    select: { articleId: true }
-  })
-  const recommendedIds = recommendedArticleIds.map(r => r.articleId)
+  if (candidates.length === 0) {
+    return prisma.article.findFirst({
+      where: { status: 'new' },
+      include: { source: true, category: true },
+      orderBy: { collectedAt: 'asc' }
+    })
+  }
 
-  // Exclude read and already recommended articles
-  const excludeIds = [...new Set([...readIds, ...recommendedIds])]
+  const sourceWeights = new Map<string, number>()
+  const categoryWeights = new Map<string, number>()
+  for (const preference of preferences) {
+    if (preference.kind === 'source') sourceWeights.set(preference.targetId, preference.weight)
+    if (preference.kind === 'category') categoryWeights.set(preference.targetId, preference.weight)
+  }
+  for (const item of readHistory) {
+    const weight = item.rating === 'like' ? 2 : item.rating === 'dislike' ? -3 : 0
+    if (weight === 0) continue
+    sourceWeights.set(item.article.sourceId, (sourceWeights.get(item.article.sourceId) ?? 0) + weight)
+    if (item.article.categoryId) {
+      categoryWeights.set(item.article.categoryId, (categoryWeights.get(item.article.categoryId) ?? 0) + weight)
+    }
+  }
 
-  // Get all categories with articles
-  const categories = await prisma.category.findMany({
-    include: {
-      articles: {
-        where: {
-          status: 'new',
-          id: { notIn: excludeIds.length > 0 ? excludeIds : undefined }
-        },
-        orderBy: { collectedAt: 'asc' },
-        take: 50 // Limit per category for performance
-      }
+  const sourceWasUsedYesterday = lastRecommendation?.article.sourceId
+  const isWeekday = [1, 2, 3, 4, 5].includes(new Date().getDay())
+  const scored = candidates.map((article, index) => {
+    // Nos dias úteis, favorece leituras curtas para reduzir o atrito do ritual diário.
+    const readingTimeBonus = isWeekday && article.readingTimeMinutes
+      ? Math.max(0, 10 - article.readingTimeMinutes) / 2
+      : 0
+
+    return {
+      article,
+      score:
+        (sourceWeights.get(article.sourceId) ?? 0) +
+        (article.categoryId ? categoryWeights.get(article.categoryId) ?? 0 : 0) +
+        readingTimeBonus +
+        (article.sourceId === sourceWasUsedYesterday ? -5 : 0) -
+        index * 0.01
     }
   })
 
-  // Simple rotation: pick from categories round-robin based on day of year
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000)
-  const categoryIndex = dayOfYear % categories.length
-  const selectedCategory = categories[categoryIndex]
+  const alternatives = sourceWasUsedYesterday
+    ? scored.filter((item) => item.article.sourceId !== sourceWasUsedYesterday)
+    : scored
 
-  if (selectedCategory?.articles.length > 0) {
-    return selectedCategory.articles[0]
-  }
-
-  // Fallback: any unread article
-  return prisma.article.findFirst({
-    where: {
-      status: 'new',
-      id: { notIn: excludeIds.length > 0 ? excludeIds : undefined }
-    },
-    orderBy: { collectedAt: 'asc' }
-  })
+  return (alternatives.length > 0 ? alternatives : scored)
+    .sort((left, right) => right.score - left.score)[0].article
 }
 
 export async function markArticleOpened(userId: string, articleId: string): Promise<void> {
@@ -326,13 +361,14 @@ export async function getUserStats(userId: string) {
   }
 }
 
-function formatRecommendation(rec: any, readingHistory: any = null): DailyRecommendationResult {
+function formatRecommendation(rec: any, readingHistory: any = null, reason: string): DailyRecommendationResult {
   return {
     id: rec.id,
     userId: rec.userId,
     articleId: rec.articleId,
     date: rec.date,
     createdAt: rec.createdAt,
+    reason,
     article: {
       id: rec.article.id,
       title: rec.article.title,

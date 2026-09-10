@@ -182,8 +182,13 @@ export default function Hoje() {
         </div>
       </header>
 
-      {/* Article Card */}
+        {/* Article Card */}
       <article className="card card-hover p-6 sm:p-8 animate-fade-in">
+        {daily.reason && (
+          <p className="mb-4 text-body-sm text-ink-500">
+            <span className="font-medium text-ink-700">Por que esta leitura?</span> {daily.reason}
+          </p>
+        )}
         {/* Category badge */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <span className="badge-sage">{categoryName}</span>

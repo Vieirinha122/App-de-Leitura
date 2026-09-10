@@ -20,6 +20,18 @@ async function fetchSources(): Promise<Source[]> {
   return data
 }
 
+type Preference = { kind: 'source' | 'category'; targetId: string; blocked: boolean; weight: number }
+
+async function fetchPreferences(): Promise<Preference[]> {
+  const { data } = await api.get<Preference[]>('/api/v1/preferences')
+  return data
+}
+
+async function savePreference(preference: Preference): Promise<Preference> {
+  const { data } = await api.put<Preference>('/api/v1/preferences', preference)
+  return data
+}
+
 async function saveSource(form: SourceForm, id?: string): Promise<Source> {
   const payload = { ...form, feedUrl: form.feedUrl || undefined }
   const { data } = id
@@ -35,6 +47,16 @@ export default function Fontes() {
   const [editingId, setEditingId] = useState<string | undefined>()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: fetchSources })
+  const preferencesQuery = useQuery({ queryKey: ['preferences'], queryFn: fetchPreferences })
+  const preferenceMutation = useMutation({
+    mutationFn: savePreference,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['preferences'] })
+      queryClient.invalidateQueries({ queryKey: ['daily'] })
+      addToast({ type: 'success', title: 'Preferência atualizada' })
+    },
+    onError: () => addToast({ type: 'error', title: 'Erro', message: 'Não foi possível atualizar a preferência' })
+  })
 
   const saveMutation = useMutation({
     mutationFn: () => saveSource(form, editingId),
@@ -109,7 +131,7 @@ export default function Fontes() {
         <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white">
           <table className="w-full text-left text-body-sm">
             <thead className="border-b border-ink-200 bg-ink-50 text-caption uppercase text-ink-500"><tr><th className="px-4 py-3">Fonte</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Artigos</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Ações</th></tr></thead>
-            <tbody>{(sourcesQuery.data ?? []).map((source) => <tr key={source.id} className="border-b border-ink-100 last:border-0"><td className="px-4 py-4"><p className="font-medium text-ink-900">{source.name}</p><p className="text-caption text-ink-500">{source.url}</p></td><td className="px-4 py-4"><span className="badge-neutral">{source.type}</span></td><td className="px-4 py-4 text-ink-600">{source._count?.articles ?? 0}</td><td className="px-4 py-4"><span className={source.enabled ? 'badge-success' : 'badge-neutral'}>{source.enabled ? 'Ativa' : 'Inativa'}</span></td><td className="px-4 py-4"><div className="flex justify-end gap-1"><button className="btn-ghost p-2" onClick={() => syncMutation.mutate(source.id)} disabled={!source.feedUrl || syncMutation.isPending || deleteMutation.isPending} aria-label="Sincronizar fonte"><RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} /></button><button className="btn-ghost p-2" onClick={() => openEdit(source)} disabled={syncMutation.isPending || deleteMutation.isPending} aria-label="Editar fonte"><Edit3 className="h-4 w-4" /></button><button className="btn-ghost p-2 text-rose-600" onClick={() => deleteMutation.mutate(source.id)} disabled={deleteMutation.isPending || syncMutation.isPending} aria-label="Remover fonte"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody>
+            <tbody>{(sourcesQuery.data ?? []).map((source) => <tr key={source.id} className="border-b border-ink-100 last:border-0"><td className="px-4 py-4"><p className="font-medium text-ink-900">{source.name}</p><p className="text-caption text-ink-500">{source.url}</p></td><td className="px-4 py-4"><span className="badge-neutral">{source.type}</span>{preferencesQuery.data?.some((item) => item.kind === 'source' && item.targetId === source.id && item.blocked) && <span className="ml-2 badge-error">Bloqueada</span>}</td><td className="px-4 py-4 text-ink-600">{source._count?.articles ?? 0}</td><td className="px-4 py-4"><span className={source.enabled ? 'badge-success' : 'badge-neutral'}>{source.enabled ? 'Ativa' : 'Inativa'}</span></td><td className="px-4 py-4"><div className="flex justify-end gap-1"><button className="btn-ghost p-2" onClick={() => syncMutation.mutate(source.id)} disabled={!source.feedUrl || (syncMutation.isPending && syncMutation.variables === source.id) || deleteMutation.isPending} aria-label="Sincronizar fonte"><RefreshCw className={`h-4 w-4 ${syncMutation.isPending && syncMutation.variables === source.id ? 'animate-spin' : ''}`} /></button><button className="btn-ghost p-2" onClick={() => preferenceMutation.mutate({ kind: 'source', targetId: source.id, blocked: !(preferencesQuery.data?.find((item) => item.kind === 'source' && item.targetId === source.id)?.blocked ?? false), weight: 0 })} disabled={preferenceMutation.isPending} aria-label="Bloquear ou desbloquear fonte">{preferencesQuery.data?.find((item) => item.kind === 'source' && item.targetId === source.id)?.blocked ? 'Desbloquear' : 'Bloquear'}</button><button className="btn-ghost p-2" onClick={() => openEdit(source)} disabled={syncMutation.isPending || deleteMutation.isPending} aria-label="Editar fonte"><Edit3 className="h-4 w-4" /></button><button className="btn-ghost p-2 text-rose-600" onClick={() => deleteMutation.mutate(source.id)} disabled={deleteMutation.isPending || syncMutation.isPending} aria-label="Remover fonte"><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody>
           </table>
           {(sourcesQuery.data ?? []).length === 0 && <div className="py-12 text-center text-ink-500"><Rss className="mx-auto mb-3 h-8 w-8 text-ink-300" />Nenhuma fonte cadastrada.</div>}
         </div>

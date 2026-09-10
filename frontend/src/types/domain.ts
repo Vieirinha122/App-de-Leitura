@@ -71,6 +71,7 @@ export type DailyRecommendation = {
   articleId: string
   date: string // YYYY-MM-DD
   createdAt: string
+  reason?: string
 
   article?: Article
 }

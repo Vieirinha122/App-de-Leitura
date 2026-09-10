@@ -18,6 +18,8 @@ import { authRoutes } from '@/modules/auth/routes'
 import { dailyRoutes } from '@/modules/daily-recommendation/routes'
 import { articlesRoutes } from '@/modules/articles/routes'
 import { sourcesRoutes } from '@/modules/sources/routes'
+import { preferenceRoutes } from '@/modules/preferences/routes'
+import { categoriesRoutes } from '@/modules/categories/routes'
 import { healthRoutes } from '@/lib/routes/health'
 import { authPlugin } from '@/lib/auth/plugin'
 import { prisma } from '@/lib/prisma'
@@ -124,6 +126,8 @@ await app.register(authRoutes, { prefix: '/api/v1/auth' })
 await app.register(dailyRoutes, { prefix: '/api/v1/daily' })
 await app.register(articlesRoutes, { prefix: '/api/v1' })
 await app.register(sourcesRoutes, { prefix: '/api/v1' })
+await app.register(preferenceRoutes, { prefix: '/api/v1' })
+await app.register(categoriesRoutes, { prefix: '/api/v1' })
 
 // 404 handler
 app.setNotFoundHandler((request, reply) => {

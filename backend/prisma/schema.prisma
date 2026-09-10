@@ -18,6 +18,7 @@ model User {
   readingHistory   ReadingHistory[]
   dailyRecommendations DailyRecommendation[]
   refreshTokens    RefreshToken[]
+  preferences      UserPreference[]
 
   @@map("users")
 }
@@ -112,6 +113,23 @@ model DailyRecommendation {
   @@index([userId])
   @@index([date])
   @@map("daily_recommendations")
+}
+
+model UserPreference {
+  id         String   @id @default(cuid())
+  userId     String
+  kind       String   // source ou category
+  targetId   String
+  blocked    Boolean  @default(false)
+  weight     Int      @default(0)
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt       @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, targetId])
+  @@index([userId, kind])
+  @@map("user_preferences")
 }
 
 model RefreshToken {

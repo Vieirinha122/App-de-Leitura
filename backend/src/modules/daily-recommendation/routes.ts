@@ -9,6 +9,7 @@ const dailyResponse = z.object({
   articleId: z.string(),
   date: z.string().datetime(),
   createdAt: z.string().datetime(),
+  reason: z.string(),
   article: z.object({
     id: z.string(),
     title: z.string(),
