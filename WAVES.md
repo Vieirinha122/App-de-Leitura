@@ -113,7 +113,7 @@
 
 ---
 
-## ONDA 4 — Fontes (CRUD + RSS Import)
+## ONDA 4 — Fontes (CRUD + RSS Import + Descoberta Guiada)
 **Objetivo:** Gerenciar fontes e popular artigos via RSS.
 
 ### Backend
@@ -127,8 +127,17 @@
 - [x] Feedback de sync + contagem de artigos importados/ignorados via toast
 
 ### Critério de aceite
-- Adiciona feed RSS válido → artigos aparecem na biblioteca após sync
-- Fontes inválidas mostram erro claro
+- [x] Adiciona feed RSS válido → artigos aparecem na biblioteca após sync
+- [x] Fontes inválidas mostram erro claro
+- [x] Usuário leigo pode colar a URL de um site e selecionar um feed encontrado
+- [x] Catálogo interno de fontes sugeridas em português com filtro por tema
+- [x] Fontes já cadastradas são removidas visualmente das sugestões
+
+### Descoberta guiada
+- [x] `POST /api/v1/sources/discover`
+- [x] Descoberta de links RSS/Atom declarados no HTML
+- [x] Fluxo frontend para informar site, selecionar feed e preencher cadastro
+- [x] Proteções básicas contra SSRF, redirects, respostas grandes e timeout
 
 ---
 

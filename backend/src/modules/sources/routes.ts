@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth/plugin'
 import { createSource, deleteSource, getSource, listSources, updateSource } from './service'
 import { syncSource } from './sync-service'
+import { discoverFeeds } from './discovery-service'
+import { listSourceSuggestions } from './suggestions-service'
 
 const sourceType = z.enum(['rss', 'newsletter', 'manual', 'api'])
 const sourceBody = z.object({
@@ -34,6 +36,31 @@ function serialize(source: any) {
 }
 
 export async function sourcesRoutes(app: FastifyInstance) {
+  app.get('/sources/suggestions', {
+    schema: {
+      querystring: z.object({ query: z.string().optional(), topic: z.string().optional() }),
+      tags: ['Sources'],
+      summary: 'Listar fontes sugeridas que ainda não foram cadastradas'
+    },
+    preHandler: [requireAuth]
+  }, async (request) => {
+    const query = request.query as { query?: string; topic?: string }
+    return listSourceSuggestions(query.query, query.topic)
+  })
+
+  app.post('/sources/discover', {
+    schema: {
+      body: z.object({ url: z.string().url() }),
+      response: { 200: z.object({ feeds: z.array(z.object({ url: z.string(), title: z.string(), type: z.enum(['rss', 'atom']) })) }) },
+      tags: ['Sources'],
+      summary: 'Descobrir feeds RSS ou Atom a partir de um site'
+    },
+    preHandler: [requireAuth]
+  }, async (request) => {
+    const { url } = request.body as { url: string }
+    return { feeds: await discoverFeeds(url) }
+  })
+
   app.get('/sources', {
     schema: { response: { 200: z.array(sourceResponse) }, tags: ['Sources'] },
     preHandler: [requireAuth]

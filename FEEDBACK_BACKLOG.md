@@ -128,6 +128,43 @@ Antes de implementar, decidir:
 - como tratar nomes próprios, termos técnicos, código, comandos e citações;
 - como revisar traduções contextuais sem transformar o app em um tradutor genérico.
 
+### FB-011 — Catálogo de fontes conhecidas
+**Status:** parcialmente resolvido  
+**Área:** Fontes / Produto  
+**Prioridade:** baixa
+
+Já existe um catálogo interno inicial de fontes em português, com filtros por tema e remoção visual das fontes cadastradas. Continuar ampliando e validando fontes de História, Filosofia, Ciência, Tecnologia e Notícias.
+
+Possíveis evoluções:
+
+- catálogo curado por idioma, país e tema;
+- validação periódica dos feeds;
+- descoberta por URL alimentando o catálogo;
+- busca externa opcional com Tavily, Brave ou Exa, sempre com cache e limite de consultas.
+
+### FB-012 — Podcasts narrativos e educativos em português
+**Status:** pendente  
+**Área:** Fontes / Conteúdo / Player  
+**Prioridade:** média
+
+Avaliar suporte a podcasts em português no estilo de programas narrativos e educativos, como História em Meia Hora, com foco em História, Filosofia, Ciência, Literatura e Cultura. Não é objetivo criar um agregador genérico de podcasts.
+
+A fonte técnica preferencial será o RSS oficial do programa, não o Spotify. O RSS normalmente fornece título, descrição, data, duração, imagem e URL original do áudio.
+
+Possível experiência:
+
+- seção ou filtro de Podcasts;
+- catálogo curado de programas em português;
+- episódios tratados como itens de escuta;
+- player HTML5 usando a URL original do áudio;
+- play/pause e progresso;
+- continuar de onde parou;
+- marcar como ouvido;
+- avaliação e histórico de escuta;
+- separar métricas de leitura e escuta quando fizer sentido.
+
+Antes de implementar, decidir se o podcast entra no mesmo modelo de `Article` ou se merece um modelo próprio, além de avaliar duração, progresso, disponibilidade e direitos de uso do áudio.
+
 ## Decisões de implementação
 
 - Regra de negócio fica no backend: marcar como lido sempre atualiza artigo e histórico em transação.
