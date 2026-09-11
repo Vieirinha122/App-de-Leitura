@@ -142,6 +142,24 @@ Possíveis evoluções:
 - descoberta por URL alimentando o catálogo;
 - busca externa opcional com Tavily, Brave ou Exa, sempre com cache e limite de consultas.
 
+### FB-015 — Tradução de artigos nas leituras diárias
+**Status:** pendente  
+**Área:** Leitura / IA / Produto  
+**Prioridade:** média
+
+Implementar botão de tradução nas leituras diárias e na Biblioteca. O objetivo é traduzir artigos relevantes em inglês/outros idiomas para português, com tradução contextual (não literal), preservando termos técnicos, nomes próprios e código.
+
+Pontos a definir:
+- como detectar o idioma do artigo;
+- se traduz apenas título+resumo ou também conteúdo completo;
+- como preservar URL e texto original;
+- como sinalizar que o conteúdo foi traduzido;
+- quando usar tradução determinística/serviço especializado vs IA;
+- como evitar custo duplicado com cache por URL+idioma;
+- como tratar nomes próprios, termos técnicos, código e citações.
+
+A tradução não deve ser literal automática: o objetivo é preservar o sentido, o contexto técnico e a naturalidade em português.
+
 ### FB-012 — Podcasts narrativos e educativos em português
 **Status:** pendente  
 **Área:** Fontes / Conteúdo / Player  
@@ -164,6 +182,20 @@ Possível experiência:
 - separar métricas de leitura e escuta quando fizer sentido.
 
 Antes de implementar, decidir se o podcast entra no mesmo modelo de `Article` ou se merece um modelo próprio, além de avaliar duração, progresso, disponibilidade e direitos de uso do áudio.
+
+### FB-013 — Notificações push do PWA
+**Status:** futuro  
+**Área:** PWA / Retenção  
+**Prioridade:** baixa
+
+Avaliar Web Push com preferências de manhã, tarde e noite, timezone do usuário, service worker, subscriptions por dispositivo e scheduler no backend. Não faz parte da ONDA 6 atual.
+
+### FB-014 — Livros pessoais e IA para livros
+**Status:** fora do escopo  
+**Área:** Produto  
+**Prioridade:** nenhuma
+
+O Daily Read não terá biblioteca de livros, leitor EPUB/PDF ou IA para livros neste projeto.
 
 ## Decisões de implementação
 

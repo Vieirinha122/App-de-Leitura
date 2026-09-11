@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, Clock, ArrowRight, Flame, Award } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, Clock, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb } from 'lucide-react'
 import { format, addDays, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { fetchDailyRecommendation, fetchPreviousDaily, openArticle, completeArticle, fetchStats } from './service'
 import Rating from '@/components/Rating'
 import { useUIStore } from '@/lib/stores/uiStore'
+import { api } from '@/lib/api/client'
 
 interface Stats {
   currentStreak: number
@@ -22,6 +23,8 @@ interface Stats {
 export default function Hoje() {
   const { addToast } = useUIStore()
   const [currentDate, setCurrentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [iaResult, setIaResult] = useState<{ type: 'summary' | 'questions' | 'explanation'; content: string[] | string } | null>(null)
+  const [iaLoading, setIaLoading] = useState(false)
 
   const isCurrentDay = isToday(parseISO(currentDate))
   const fetcher = isCurrentDay ? fetchDailyRecommendation : () => fetchPreviousDaily(currentDate)
@@ -38,6 +41,21 @@ export default function Hoje() {
     queryFn: fetchStats,
     staleTime: 1000 * 60 * 60
   })
+
+  async function executarAcaoIa(type: 'summary' | 'questions' | 'explanation') {
+    if (!article) return
+    setIaLoading(true)
+    try {
+      const endpoint = type === 'summary' ? 'summarize' : type === 'questions' ? 'questions' : 'explain'
+      const { data } = await api.post<{ bullets?: string[]; questions?: string[]; explanation?: string }>(`/api/v1/ai/${endpoint}`, { articleId: article.id })
+      setIaResult({ type, content: data.bullets ?? data.questions ?? data.explanation ?? '' })
+      addToast({ type: 'success', title: 'Conteúdo gerado' })
+    } catch (error) {
+      addToast({ type: 'error', title: 'Erro na IA', message: error instanceof Error ? error.message : 'Não foi possível gerar o conteúdo' })
+    } finally {
+      setIaLoading(false)
+    }
+  }
 
   const navigateDay = (delta: number) => {
     const newDate = format(addDays(parseISO(currentDate), delta), 'yyyy-MM-dd')
@@ -244,6 +262,17 @@ export default function Hoje() {
             <BookOpen className="h-5 w-5" />
             Marcar como lido
           </button>
+        </div>
+
+        {/* Ações de IA */}
+        <div className="mt-6 border-t border-ink-200 pt-6">
+          <p className="mb-3 text-body-sm font-medium text-ink-700">Aprofundar esta leitura</p>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-secondary" onClick={() => executarAcaoIa('summary')} disabled={iaLoading}><Brain className="h-4 w-4" /> Resumir</button>
+            <button className="btn-secondary" onClick={() => executarAcaoIa('questions')} disabled={iaLoading}><HelpCircle className="h-4 w-4" /> Perguntas</button>
+            <button className="btn-secondary" onClick={() => executarAcaoIa('explanation')} disabled={iaLoading}><Lightbulb className="h-4 w-4" /> Explicar</button>
+          </div>
+          {iaResult && <div className="mt-4 rounded-lg bg-amber-50 p-4 text-body-sm text-ink-700"><p className="mb-2 font-semibold">{iaResult.type === 'summary' ? 'Resumo' : iaResult.type === 'questions' ? 'Perguntas de fixação' : 'Explicação'}</p>{Array.isArray(iaResult.content) ? <ul className="list-disc space-y-1 pl-5">{iaResult.content.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{iaResult.content}</p>}</div>}
         </div>
 
         {/* Rating */}

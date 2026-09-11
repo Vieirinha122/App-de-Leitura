@@ -1,6 +1,5 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import 'dotenv/config'
 import Fastify from 'fastify'
 import { fastifyCors } from '@fastify/cors'
 import { fastifyHelmet } from '@fastify/helmet'
@@ -20,6 +19,7 @@ import { articlesRoutes } from '@/modules/articles/routes'
 import { sourcesRoutes } from '@/modules/sources/routes'
 import { preferenceRoutes } from '@/modules/preferences/routes'
 import { categoriesRoutes } from '@/modules/categories/routes'
+import { aiRoutes } from '@/modules/ai/routes'
 import { healthRoutes } from '@/lib/routes/health'
 import { authPlugin } from '@/lib/auth/plugin'
 import { prisma } from '@/lib/prisma'
@@ -128,6 +128,7 @@ await app.register(articlesRoutes, { prefix: '/api/v1' })
 await app.register(sourcesRoutes, { prefix: '/api/v1' })
 await app.register(preferenceRoutes, { prefix: '/api/v1' })
 await app.register(categoriesRoutes, { prefix: '/api/v1' })
+await app.register(aiRoutes, { prefix: '/api/v1' })
 
 // 404 handler
 app.setNotFoundHandler((request, reply) => {

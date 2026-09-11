@@ -1,4 +1,11 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import dotenv from 'dotenv'
 import { z } from 'zod'
+
+// Carrega o ambiente do backend independentemente do diretório de onde o npm foi executado.
+const diretorioBackend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
+dotenv.config({ path: path.join(diretorioBackend, '.env') })
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -15,6 +22,9 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().url().default('http://localhost:3000'),
   RSS_CRON_ENABLED: z.enum(['true', 'false']).default('false'),
   RSS_CRON_EXPRESSION: z.string().default('0 */6 * * *'),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+  OPENAI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().max(2000).default(500),
 
   // Email (opcional para futuro)
   SMTP_HOST: z.string().optional(),
