@@ -168,7 +168,7 @@
 - [x] Rate limit específico nas rotas de IA
 - [x] Limite configurável de tokens (`OPENAI_MAX_OUTPUT_TOKENS`)
 - [x] Ações `Resumir`, `Perguntas` e `Explicar` na interface do Daily
-- [ ] Embeddings e artigos relacionados — próxima etapa técnica com pgvector
+- [ ] Embeddings e artigos relacionados — ONDA 6.1 (pgvector, modelo de embedding, migration vetorial)
 **Objetivo:** Features de IA sobre artigos.
 
 ### Backend
@@ -186,24 +186,28 @@
 ---
 
 ## ONDA 7 — PWA Hardening + Deploy
-**Objetivo:** Instalável, offline-first básico, deployável.
+**Status:** ✅ Deploy realizado (Frontend → Vercel, Backend → Render)
+**Objetivo:** Instalável, offline-first básico, deploy validado.
 
 ### Frontend
+- [x] Deploy Frontend → Vercel
 - [ ] Service worker: cache shell + API GET (NetworkFirst)
 - [ ] Offline fallback page
 - [ ] Web App Manifest completo (ícones, shortcuts)
 - [ ] Meta tags PWA (apple-mobile-web-app-capable, etc.)
 
 ### Backend
-- [ ] Rate-limit por IP + por user
-- [ ] Helmet CSP ajustado
-- [ ] Logs estruturados (request-id, user-id)
+- [x] Deploy Backend → Render
+- [x] Rate-limit por IP + por user
+- [x] Helmet CSP ajustado
+- [x] Logs estruturados (request-id, user-id)
 - [ ] Health check com dependências (DB, Redis)
+- [ ] Rate-limit por IP + por user (revisar produção)
 
 ### Deploy
-- [ ] Frontend → Vercel/Cloudflare Pages
-- [ ] Backend → Railway/Fly.io/Render/VPS
-- [ ] Neon Postgres (já configurado desde ONDA 0)
+- [x] Frontend → Vercel
+- [x] Backend → Render
+- [x] Neon Postgres (desde ONDA 0)
 - [ ] Redis → Upstash (serverless) ou Redis local se necessário
 - [ ] Variáveis de produção documentadas
 
