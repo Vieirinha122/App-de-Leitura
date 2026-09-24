@@ -21,6 +21,7 @@ import { preferenceRoutes } from '@/modules/preferences/routes'
 import { categoriesRoutes } from '@/modules/categories/routes'
 import { aiRoutes } from '@/modules/ai/routes'
 import { healthRoutes } from '@/lib/routes/health'
+import { cronRoutes } from '@/lib/routes/cron'
 import { authPlugin } from '@/lib/auth/plugin'
 import { prisma } from '@/lib/prisma'
 import { startRssCron } from '@/jobs/rss-cron'
@@ -122,6 +123,7 @@ app.setErrorHandler(errorHandler)
 
 // Routes
 await app.register(healthRoutes, { prefix: '/api' })
+await app.register(cronRoutes, { prefix: '/api' })
 await app.register(authRoutes, { prefix: '/api/v1/auth' })
 await app.register(dailyRoutes, { prefix: '/api/v1/daily' })
 await app.register(articlesRoutes, { prefix: '/api/v1' })

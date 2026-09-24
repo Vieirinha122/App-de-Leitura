@@ -26,6 +26,9 @@ const envSchema = z.object({
   OPENAI_MODEL: z.string().default('gpt-4o-mini'),
   OPENAI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().max(2000).default(500),
 
+  // Secret para proteger a rota de cron externo (cron-job.org)
+  CRON_SECRET: z.string().min(16).optional(),
+
   // Email (opcional para futuro)
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
