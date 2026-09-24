@@ -48,11 +48,14 @@ export default function AuthPage() {
     setIsSubmitting(true)
     clearError()
 
+    // Normaliza email para lowercase antes de enviar (evita problemas com "Vieira@..." vs "vieira@...")
+    const emailNormalizado = formData.email.trim().toLowerCase()
+
     try {
       if (mode === 'login') {
-        await login(formData.email, formData.password)
+        await login(emailNormalizado, formData.password)
       } else {
-        await register(formData.name, formData.email, formData.password)
+        await register(formData.name, emailNormalizado, formData.password)
       }
       addToast({ type: 'success', title: mode === 'login' ? 'Bem-vindo de volta!' : 'Conta criada com sucesso!' })
       navigate('/hoje')
