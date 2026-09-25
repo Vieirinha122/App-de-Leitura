@@ -127,6 +127,13 @@ export async function getPreviousRecommendation(userId: string, date: Date): Pro
 }
 
 async function findNextArticleForUser(userId: string) {
+  // Busca tópicos do usuário para personalizar a recomendação
+  const userTopics = await prisma.userTopic.findMany({
+    where: { userId },
+    select: { topicId: true }
+  })
+  const userTopicIds = userTopics.map(ut => ut.topicId)
+
   const [readHistory, recommendations, lastRecommendation, preferences] = await Promise.all([
     prisma.readingHistory.findMany({
       where: { userId, completedAt: { not: null } },
@@ -152,17 +159,62 @@ async function findNextArticleForUser(userId: string) {
   const blockedSources = new Set(preferences.filter((item) => item.kind === 'source' && item.blocked).map((item) => item.targetId))
   const blockedCategories = new Set(preferences.filter((item) => item.kind === 'category' && item.blocked).map((item) => item.targetId))
 
-  const candidates = await prisma.article.findMany({
-    where: {
-      status: 'new',
-      id: { notIn: excludedIds.length > 0 ? excludedIds : undefined },
-      sourceId: { notIn: [...blockedSources] },
-      categoryId: { notIn: [...blockedCategories] }
-    },
-    include: { source: true, category: true },
-    orderBy: { collectedAt: 'asc' },
-    take: 100
-  })
+  // Se usuário tem tópicos, filtra fontes que possuem esses tópicos via SourceTopic
+  let sourceIdsFromTopics: string[] = []
+  if (userTopicIds.length > 0) {
+    const sourceTopics = await prisma.sourceTopic.findMany({
+      where: { topicId: { in: userTopicIds } },
+      select: { sourceId: true },
+      distinct: ['sourceId']
+    })
+    sourceIdsFromTopics = sourceTopics.map(st => st.sourceId)
+  }
+
+  // Tenta primeiro buscar artigos das fontes dos tópicos do usuário
+  const whereBase = {
+    status: 'new',
+    id: { notIn: excludedIds.length > 0 ? excludedIds : undefined },
+    sourceId: { notIn: [...blockedSources] },
+    categoryId: { notIn: [...blockedCategories] }
+  }
+
+  // Tipagem explícita para evitar erro TS7034
+  let candidates: Array<{
+    id: string
+    title: string
+    url: string
+    summary: string | null
+    readingTimeMinutes: number | null
+    publishedAt: Date | null
+    collectedAt: Date
+    status: string
+    tags: string[]
+    sourceId: string
+    categoryId: string | null
+    source: { id: string; name: string }
+    category: { id: string; name: string } | null
+  }> = []
+  if (sourceIdsFromTopics.length > 0) {
+    candidates = await prisma.article.findMany({
+      where: {
+        ...whereBase,
+        sourceId: { in: sourceIdsFromTopics }
+      },
+      include: { source: true, category: true },
+      orderBy: { collectedAt: 'asc' },
+      take: 100
+    })
+  }
+
+  // Fallback: se não há artigos nos tópicos do usuário, busca geral (comportamento original)
+  if (candidates.length === 0) {
+    candidates = await prisma.article.findMany({
+      where: whereBase,
+      include: { source: true, category: true },
+      orderBy: { collectedAt: 'asc' },
+      take: 100
+    })
+  }
 
   if (candidates.length === 0) {
     return prisma.article.findFirst({

@@ -25,6 +25,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
 
   app.addHook('preHandler', async (request, reply) => {
     // Skip auth for public routes
+    // Use exact match for /api/v1/topics to avoid matching /api/v1/topics/my/*
     const publicPaths = [
       '/api/health',
       '/api/health/ready',
@@ -32,13 +33,18 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
       '/api/v1/auth/login',
       '/api/v1/auth/logout',
       '/api/v1/auth/refresh',
+      '/api/v1/topics',  // lista pública de tópicos curados (exato ou com trailing slash)
       '/docs',
       '/docs/',
       '/docs/json',
       '/docs/yaml'
     ]
 
-    if (publicPaths.some(p => request.url.startsWith(p))) {
+    // Match exato para /api/v1/topics (com ou sem trailing slash)
+    const isPublicTopics = request.url === '/api/v1/topics' || request.url === '/api/v1/topics/'
+    const isOtherPublic = publicPaths.filter(p => p !== '/api/v1/topics').some(p => request.url.startsWith(p))
+
+    if (isPublicTopics || isOtherPublic) {
       return
     }
 

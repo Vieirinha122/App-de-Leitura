@@ -58,7 +58,10 @@ export default function AuthPage() {
         await register(formData.name, emailNormalizado, formData.password)
       }
       addToast({ type: 'success', title: mode === 'login' ? 'Bem-vindo de volta!' : 'Conta criada com sucesso!' })
-      navigate('/hoje')
+      // Pequeno delay garante que cookies de auth estejam definidos antes de navegar
+      // Registro -> onboarding (/boas-vindas) | Login -> /hoje
+      const destination = mode === 'register' ? '/boas-vindas' : '/hoje'
+      setTimeout(() => navigate(destination, { replace: true }), 0)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao autenticar'
       addToast({ type: 'error', title: 'Erro', message })

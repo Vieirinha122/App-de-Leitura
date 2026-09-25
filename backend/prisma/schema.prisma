@@ -14,11 +14,13 @@ model User {
   passwordHash  String
   createdAt     DateTime @default(now()) @db.Timestamptz
   updatedAt     DateTime @updatedAt       @db.Timestamptz
+  onboardingCompleted Boolean @default(false)
 
   readingHistory   ReadingHistory[]
   dailyRecommendations DailyRecommendation[]
   refreshTokens    RefreshToken[]
   preferences      UserPreference[]
+  topics           UserTopic[]
 
   @@map("users")
 }
@@ -33,7 +35,8 @@ model Source {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt       @db.Timestamptz
 
-  articles Article[]
+  articles      Article[]
+  sourceTopics  SourceTopic[]
 
   @@map("sources")
 }
@@ -148,4 +151,48 @@ model RefreshToken {
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt       @db.Timestamptz
+
+  userTopics    UserTopic[]
+  sourceTopics  SourceTopic[]
+
+  @@map("topics")
+}
+
+model UserTopic {
+  id        String   @id @default(cuid())
+  userId    String
+  topicId   String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([userId])
+  @@index([topicId])
+  @@map("user_topics")
+}
+
+model SourceTopic {
+  id        String   @id @default(cuid())
+  sourceId  String
+  topicId   String
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  topic  Topic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, topicId])
+  @@index([sourceId])
+  @@index([topicId])
+  @@map("source_topics")
 }

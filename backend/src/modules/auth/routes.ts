@@ -10,7 +10,7 @@ import { requireAuth } from '@/lib/auth/plugin'
 const loginSchema = z.object({
   body: z.object({
     email: z.string().email(),
-    password: z.string().min(8)
+    password: z.string().min(1) // Login aceita qualquer senha não-vazia; validação de comprimento só no registro
   })
 })
 

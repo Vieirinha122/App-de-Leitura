@@ -10,6 +10,7 @@ const Biblioteca = lazy(() => import('@/modules/biblioteca'))
 const Historico = lazy(() => import('@/modules/historico'))
 const Fontes = lazy(() => import('@/modules/fontes'))
 const Auth = lazy(() => import('@/modules/auth'))
+const Onboarding = lazy(() => import('@/modules/onboarding'))
 
 // Loading wrapper for auth routes (no shell)
 function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Protected layout without Navigation header (for onboarding)
+function ProtectedNoNavLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-ink-50">
+        {children}
+      </div>
+    </ProtectedRoute>
+  )
+}
+
 function App() {
   return (
     <Suspense fallback={<LoadingFallback />}>
@@ -43,40 +55,30 @@ function App() {
         <Route path="/login" element={<AuthLayout><Auth /></AuthLayout>} />
         <Route path="/register" element={<AuthLayout><Auth /></AuthLayout>} />
 
-        {/* Protected routes under ShellHost */}
+        {/* Protected onboarding without Navigation header */}
+        <Route
+          path="/boas-vindas"
+          element={<ProtectedNoNavLayout><Onboarding /></ProtectedNoNavLayout>}
+        />
+
+        {/* Protected routes under ShellHost (with Navigation) */}
         <Route path="/" element={<ShellHost />}>
           <Route index element={<Navigate to="/hoje" replace />} />
           <Route
             path="hoje"
-            element={
-              <ProtectedRoute>
-                <Hoje />
-              </ProtectedRoute>
-            }
+            element={<ProtectedRoute><Hoje /></ProtectedRoute>}
           />
           <Route
             path="biblioteca"
-            element={
-              <ProtectedRoute>
-                <Biblioteca />
-              </ProtectedRoute>
-            }
+            element={<ProtectedRoute><Biblioteca /></ProtectedRoute>}
           />
           <Route
             path="historico"
-            element={
-              <ProtectedRoute>
-                <Historico />
-              </ProtectedRoute>
-            }
+            element={<ProtectedRoute><Historico /></ProtectedRoute>}
           />
           <Route
             path="fontes"
-            element={
-              <ProtectedRoute>
-                <Fontes />
-              </ProtectedRoute>
-            }
+            element={<ProtectedRoute><Fontes /></ProtectedRoute>}
           />
         </Route>
 

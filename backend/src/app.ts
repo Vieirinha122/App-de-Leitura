@@ -20,6 +20,7 @@ import { sourcesRoutes } from '@/modules/sources/routes'
 import { preferenceRoutes } from '@/modules/preferences/routes'
 import { categoriesRoutes } from '@/modules/categories/routes'
 import { aiRoutes } from '@/modules/ai/routes'
+import { topicsRoutes } from '@/modules/topics/routes'
 import { healthRoutes } from '@/lib/routes/health'
 import { cronRoutes } from '@/lib/routes/cron'
 import { authPlugin } from '@/lib/auth/plugin'
@@ -131,6 +132,7 @@ await app.register(sourcesRoutes, { prefix: '/api/v1' })
 await app.register(preferenceRoutes, { prefix: '/api/v1' })
 await app.register(categoriesRoutes, { prefix: '/api/v1' })
 await app.register(aiRoutes, { prefix: '/api/v1' })
+await app.register(topicsRoutes, { prefix: '/api/v1' })
 
 // 404 handler
 app.setNotFoundHandler((request, reply) => {
