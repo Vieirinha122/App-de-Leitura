@@ -7,6 +7,7 @@ export type User = {
   name: string
   email: string
   createdAt: string
+  onboardingCompleted: boolean
 }
 
 type AuthState = {
@@ -19,6 +20,7 @@ type AuthState = {
   setUser: (user: User | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  setOnboardingCompleted: () => void
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => Promise<void>
@@ -35,6 +37,10 @@ export const useAuthStore = create<AuthState>()(
       error: null,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+
+      setOnboardingCompleted: () => set((state) => ({
+        user: state.user ? { ...state.user, onboardingCompleted: true } : null
+      })),
 
       setLoading: (isLoading) => set({ isLoading }),
 

@@ -34,6 +34,7 @@ export const authPlugin = fp(async function authPlugin(app: FastifyInstance) {
       '/api/v1/auth/logout',
       '/api/v1/auth/refresh',
       '/api/v1/topics',  // lista pública de tópicos curados (exato ou com trailing slash)
+      '/api/cron/sync',  // rota de cron job (protegida via header x-cron-secret no handler)
       '/docs',
       '/docs/',
       '/docs/json',

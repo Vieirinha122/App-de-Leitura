@@ -1,15 +1,7 @@
-import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import Navigation from '@/components/Navigation'
-import { useAuthStore } from '@/lib/stores/authStore'
 
 export default function ShellHost() {
-  const { checkAuth } = useAuthStore()
-
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
-
   return (
     <div className="min-h-screen flex flex-col bg-ink-50">
       <Navigation />

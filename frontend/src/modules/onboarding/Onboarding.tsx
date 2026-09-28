@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Loader2, Check, AlertCircle, Sparkles } from 'lucide-react'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { fetchTopics, startOnboarding, checkOnboardingStatus, type Topic, type OnboardingStatus } from './service'
 
@@ -9,6 +11,8 @@ const SUGGESTED_MAX = 5
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { setOnboardingCompleted } = useAuthStore()
   const { addToast: notify } = useUIStore()
 
   const [topics, setTopics] = useState<Topic[]>([])
@@ -48,6 +52,15 @@ export default function OnboardingPage() {
     })
   }, [])
 
+  // Seleciona ou desmarca todos os tópicos (ignora o limite de SUGGESTED_MAX)
+  const toggleAllTopics = useCallback(() => {
+    setSelectedTopics(prev => {
+      const allIds = new Set(topics.map(t => t.id))
+      const isAllSelected = prev.size === topics.length && topics.every(t => prev.has(t.id))
+      return isAllSelected ? new Set() : allIds
+    })
+  }, [topics])
+
   // Polling do status do job
   const startPolling = useCallback((id: string) => {
     const interval = setInterval(async () => {
@@ -55,8 +68,12 @@ export default function OnboardingPage() {
         const statusData = await checkOnboardingStatus(id)
         setStatus(statusData)
 
-        if (statusData.status === 'completed') {
+         if (statusData.status === 'completed') {
           stopPolling()
+          // Marca onboarding como completo no auth store (libera acesso às rotas protegidas)
+          setOnboardingCompleted()
+          // Remove cache do daily antes de navegar para /hoje
+          queryClient.removeQueries({ queryKey: ['daily'] })
           notify({ type: 'success', title: 'Pronto!', message: 'Seu daily read está personalizado' })
           navigate('/hoje', { replace: true })
         } else if (statusData.status === 'failed') {
@@ -147,7 +164,7 @@ export default function OnboardingPage() {
               </h2>
               <div className="flex items-center gap-2">
                 <span className="text-body-sm text-ink-600">
-                  {selectedTopics.size} de {SUGGESTED_MAX} sugeridos
+                  {selectedTopics.size} de {topics.length} selecionados
                 </span>
                 <div className="hidden sm:block w-32 h-2 bg-ink-100 rounded-full overflow-hidden">
                   <div
@@ -156,6 +173,18 @@ export default function OnboardingPage() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="mb-4 flex justify-end">
+              <button
+                type="button"
+                onClick={toggleAllTopics}
+                className="btn-ghost btn-sm"
+              >
+                {topics.length > 0 && selectedTopics.size === topics.length
+                  ? 'Desmarcar todos'
+                  : 'Selecionar todos'}
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="group" aria-label="Tópicos disponíveis">
@@ -216,7 +245,7 @@ export default function OnboardingPage() {
                   <div className="w-full max-w-xs mx-auto">
                     <div className="h-2 bg-ink-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-brand-600 transition-all duration-300"
+                        className="h-full bg-amber-500 transition-all duration-300"
                         style={{ width: `${status.progress}%` }}
                       />
                     </div>

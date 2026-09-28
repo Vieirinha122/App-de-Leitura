@@ -53,13 +53,15 @@ export async function cronRoutes(app: FastifyInstance) {
       return reply.status(401).send({ message: 'Unauthorized' })
     }
 
-    // Sync de todas as fontes habilitadas com feed RSS
+    // Sync de todas as fontes habilitadas (RSS e scraping)
     const sources = await listSources()
     const results: SyncResult[] = []
     const startedAt = Date.now()
 
     for (const source of sources) {
-      if (!source.enabled || !source.feedUrl) continue
+      // Pula desabilitados; fontes 'scraped' (sem feedUrl) também são sincronizadas
+      if (!source.enabled) continue
+      if (!source.feedUrl && source.type !== 'scraped') continue
 
       try {
         const result = await syncSource(source.id)

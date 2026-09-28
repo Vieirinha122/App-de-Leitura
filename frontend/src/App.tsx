@@ -21,71 +21,92 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Protected route wrapper - redirects to login if not authenticated
+// Protected route wrapper - redireciona para /login se não autenticado
+// e para /boas-vindas se autenticado mas sem onboarding completo
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, checkAuth } = useAuthStore()
-
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
+  const { isAuthenticated, user } = useAuthStore()
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
+  // Usuário autenticado sem onboarding completo → força onboarding
+  if (!user?.onboardingCompleted) {
+    return <Navigate to="/boas-vindas" replace />
+  }
+
   return <>{children}</>
 }
 
-// Protected layout without Navigation header (for onboarding)
+// Layout de onboarding: só checa autenticação, NÃO verifica onboardingCompleted
+// (senão criaria loop infinito redirecionando /boas-vindas → /boas-vindas)
 function ProtectedNoNavLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuthStore()
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-ink-50">
-        {children}
-      </div>
-    </ProtectedRoute>
+    <div className="min-h-screen bg-ink-50">
+      {children}
+    </div>
   )
+}
+
+// Wrapper that runs checkAuth once on app mount
+function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const { checkAuth, isAuthenticated } = useAuthStore()
+
+  useEffect(() => {
+    // Only run checkAuth if we have a persisted session to validate
+    if (isAuthenticated) {
+      checkAuth()
+    }
+  }, [checkAuth, isAuthenticated])
+
+  return <>{children}</>
 }
 
 function App() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* Public auth routes */}
-        <Route path="/login" element={<AuthLayout><Auth /></AuthLayout>} />
-        <Route path="/register" element={<AuthLayout><Auth /></AuthLayout>} />
+    <AuthInitializer>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          {/* Public auth routes */}
+          <Route path="/login" element={<AuthLayout><Auth /></AuthLayout>} />
+          <Route path="/register" element={<AuthLayout><Auth /></AuthLayout>} />
 
-        {/* Protected onboarding without Navigation header */}
-        <Route
-          path="/boas-vindas"
-          element={<ProtectedNoNavLayout><Onboarding /></ProtectedNoNavLayout>}
-        />
+          {/* Protected onboarding without Navigation header */}
+          <Route
+            path="/boas-vindas"
+            element={<ProtectedNoNavLayout><Onboarding /></ProtectedNoNavLayout>}
+          />
 
-        {/* Protected routes under ShellHost (with Navigation) */}
-        <Route path="/" element={<ShellHost />}>
-          <Route index element={<Navigate to="/hoje" replace />} />
-          <Route
-            path="hoje"
-            element={<ProtectedRoute><Hoje /></ProtectedRoute>}
-          />
-          <Route
-            path="biblioteca"
-            element={<ProtectedRoute><Biblioteca /></ProtectedRoute>}
-          />
-          <Route
-            path="historico"
-            element={<ProtectedRoute><Historico /></ProtectedRoute>}
-          />
-          <Route
-            path="fontes"
-            element={<ProtectedRoute><Fontes /></ProtectedRoute>}
-          />
-        </Route>
+          {/* Protected routes under ShellHost (with Navigation) */}
+          <Route path="/" element={<ShellHost />}>
+            <Route index element={<Navigate to="/hoje" replace />} />
+            <Route
+              path="hoje"
+              element={<ProtectedRoute><Hoje /></ProtectedRoute>}
+            />
+            <Route
+              path="biblioteca"
+              element={<ProtectedRoute><Biblioteca /></ProtectedRoute>}
+            />
+            <Route
+              path="historico"
+              element={<ProtectedRoute><Historico /></ProtectedRoute>}
+            />
+            <Route
+              path="fontes"
+              element={<ProtectedRoute><Fontes /></ProtectedRoute>}
+            />
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/hoje" replace />} />
-      </Routes>
-    </Suspense>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/hoje" replace />} />
+        </Routes>
+      </Suspense>
+    </AuthInitializer>
   )
 }
 

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, Clock, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb } from 'lucide-react'
 import { format, addDays, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { fetchDailyRecommendation, fetchPreviousDaily, openArticle, completeArticle, fetchStats } from './service'
@@ -22,6 +22,7 @@ interface Stats {
 
 export default function Hoje() {
   const { addToast } = useUIStore()
+  const queryClient = useQueryClient()
   const [currentDate, setCurrentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [iaResult, setIaResult] = useState<{ type: 'summary' | 'questions' | 'explanation'; content: string[] | string } | null>(null)
   const [iaLoading, setIaLoading] = useState(false)
@@ -76,7 +77,9 @@ export default function Hoje() {
     try {
       await completeArticle(articleId, rating)
       addToast({ type: 'success', title: 'Avaliação registrada', message: 'Obrigada pelo feedback!' })
-      refetch()
+      // Invalida cache do daily e stats para refletir atualização
+      queryClient.invalidateQueries({ queryKey: ['daily', currentDate] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
     } catch {
       addToast({ type: 'error', title: 'Erro', message: 'Não foi possível registrar a avaliação' })
     }
@@ -128,7 +131,6 @@ export default function Hoje() {
   }
 
   const article = daily.article!
-  const readingTime = article.readingTimeMinutes ? `${article.readingTimeMinutes} min` : '—'
   const tags = article.tags?.slice(0, 3) ?? []
   const sourceName = article.source?.name ?? 'Fonte desconhecida'
   const categoryName = article.category?.name ?? 'Sem categoria'
@@ -230,10 +232,6 @@ export default function Hoje() {
 
         {/* Meta */}
         <div className="flex flex-wrap items-center gap-4 mb-6 text-body-sm text-ink-500">
-          <span className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4" />
-            {readingTime}
-          </span>
           {article.publishedAt && (
             <span className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
@@ -272,7 +270,7 @@ export default function Hoje() {
             <button className="btn-secondary" onClick={() => executarAcaoIa('questions')} disabled={iaLoading}><HelpCircle className="h-4 w-4" /> Perguntas</button>
             <button className="btn-secondary" onClick={() => executarAcaoIa('explanation')} disabled={iaLoading}><Lightbulb className="h-4 w-4" /> Explicar</button>
           </div>
-          {iaResult && <div className="mt-4 rounded-lg bg-amber-50 p-4 text-body-sm text-ink-700"><p className="mb-2 font-semibold">{iaResult.type === 'summary' ? 'Resumo' : iaResult.type === 'questions' ? 'Perguntas de fixação' : 'Explicação'}</p>{Array.isArray(iaResult.content) ? <ul className="list-disc space-y-1 pl-5">{iaResult.content.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{iaResult.content}</p>}</div>}
+          {iaResult && <div className="mt-4 rounded-lg bg-amber-50 p-4 text-body-sm text-ink-700 text-justify"><p className="mb-2 font-semibold">{iaResult.type === 'summary' ? 'Resumo' : iaResult.type === 'questions' ? 'Perguntas de fixação' : 'Explicação'}</p>{Array.isArray(iaResult.content) ? <ul className="list-disc space-y-1 pl-5 text-justify">{iaResult.content.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{iaResult.content}</p>}</div>}
         </div>
 
         {/* Rating */}

@@ -6,7 +6,7 @@ import { syncSource } from './sync-service'
 import { discoverFeeds } from './discovery-service'
 import { listSourceSuggestions } from './suggestions-service'
 
-const sourceType = z.enum(['rss', 'newsletter', 'manual', 'api'])
+const sourceType = z.enum(['rss', 'newsletter', 'manual', 'api', 'scraped'])
 const sourceBody = z.object({
   name: z.string().min(2).max(120),
   url: z.string().url(),

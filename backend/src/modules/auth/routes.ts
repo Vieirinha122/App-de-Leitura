@@ -26,7 +26,8 @@ const meResponse = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
-  createdAt: z.string().datetime()
+  createdAt: z.string().datetime(),
+  onboardingCompleted: z.boolean()
 })
 
 const authResponse = z.object({
@@ -53,7 +54,7 @@ export async function authRoutes(app: FastifyInstance) {
     const passwordHash = await hashPassword(password)
     const user = await prisma.user.create({
       data: { name, email, passwordHash },
-      select: { id: true, name: true, email: true, createdAt: true }
+      select: { id: true, name: true, email: true, createdAt: true, onboardingCompleted: true }
     })
 
     const accessToken = createAccessToken(app, user.id)
@@ -64,7 +65,8 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(201).send({
       user: {
         ...user,
-        createdAt: user.createdAt.toISOString()
+        createdAt: user.createdAt.toISOString(),
+        onboardingCompleted: user.onboardingCompleted
       }
     })
   })
@@ -95,7 +97,7 @@ export async function authRoutes(app: FastifyInstance) {
     await storeRefreshToken(user.id, refreshToken)
     setAuthCookies(reply, accessToken, refreshToken)
 
-    return { user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString() } }
+    return { user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString(), onboardingCompleted: user.onboardingCompleted } }
   })
 
   // POST /api/v1/auth/refresh
@@ -148,9 +150,9 @@ export async function authRoutes(app: FastifyInstance) {
   }, async (request) => {
     const user = await prisma.user.findUnique({
       where: { id: request.user!.id },
-      select: { id: true, name: true, email: true, createdAt: true }
+      select: { id: true, name: true, email: true, createdAt: true, onboardingCompleted: true }
     })
     if (!user) throw new UnauthorizedError('Usuário não encontrado')
-    return { ...user, createdAt: user.createdAt.toISOString() }
+    return { ...user, createdAt: user.createdAt.toISOString(), onboardingCompleted: user.onboardingCompleted }
   })
 }

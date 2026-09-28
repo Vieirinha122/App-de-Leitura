@@ -197,6 +197,35 @@ Avaliar Web Push com preferências de manhã, tarde e noite, timezone do usuári
 
 O Daily Read não terá biblioteca de livros, leitor EPUB/PDF ou IA para livros neste projeto.
 
+### FB-016 — Melhoria do parsing de publishedAt em artigos RSS
+**Status:** pendente  
+**Área:** RSS / Backend  
+**Prioridade:** média
+
+Artigos importados via RSS podem chegar com `publishedAt: null` quando o feed não inclui `isoDate` ou `pubDate` (ou ambos em formato não-standard). O `rss-parser` já tenta várias tags, mas alguns feeds usam formatos customizados.
+
+Melhorias a fazer:
+- Fazer parse de `dc:date`, `atom:published`, `atom:updated` além de `pubDate`/`isoDate`;
+- Logar quando um artigo chega sem data para auditoria (feed + título);
+- Usar a data de coleta (`collectedAt`) como fallback quando o feed não fornece publicação;
+- Adicionar validação de formato: `new Date()` pode produzir `Invalid Date` silencioso em strings mal-formadas.
+
+### FB-017 — Scraping de páginas sem RSS
+**Status:** backlog técnico  
+**Área:** RSS / Backend / Scraping  
+**Prioridade:** média
+
+Muitos sites sugeridos pela IA não têm feed RSS, mas têm uma página HTML com artigos. Criar um módulo de scraping que, quando o discovery não encontra feed:
+
+- Faz scraping da página inicial (ou sitemap.xml) usando `cheerio`;
+- Extrai links de artigos via Open Graph, microformats ou estrutura HTML conhecida;
+- Para cada artigo: extrai título, descrição/resumo, data de publicação, imagem de destaque;
+- Popula `Source.feedType = 'scraped'` e cria `Article` com os dados extraídos;
+- Respeita `robots.txt` e rate limiting;
+- Cacheia respostas para não refazer scraping a cada sync (TTL de 24h por URL).
+
+Não é objetivo virar um agregador genérico: foca em sites-referência de cada tópico.
+
 ## Decisões de implementação
 
 - Regra de negócio fica no backend: marcar como lido sempre atualiza artigo e histórico em transação.

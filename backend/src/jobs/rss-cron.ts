@@ -5,7 +5,7 @@ import { syncSource } from '@/modules/sources/sync-service'
 
 export function startRssCron(logger: { info: (obj: unknown, message?: string) => void; error: (obj: unknown, message?: string) => void }) {
   if (env.RSS_CRON_ENABLED !== 'true') {
-    logger.info({}, 'RSS scheduler disabled')
+    logger.info({}, 'Source scheduler disabled')
     return null
   }
 
@@ -13,12 +13,15 @@ export function startRssCron(logger: { info: (obj: unknown, message?: string) =>
     try {
       const sources = await listSources()
       for (const source of sources) {
-        if (!source.enabled || !source.feedUrl) continue
+        // Pula desabilitados; fontes 'scraped' (sem feedUrl) também são sincronizadas
+        if (!source.enabled) continue
+        if (!source.feedUrl && source.type !== 'scraped') continue
+
         try {
           const result = await syncSource(source.id)
-          logger.info(result, 'RSS source synchronized')
+          logger.info(result, 'Source synchronized')
         } catch (error) {
-          logger.error({ error, sourceId: source.id }, 'RSS source synchronization failed')
+          logger.error({ error, sourceId: source.id, sourceName: source.name }, 'Source synchronization failed')
         }
       }
     } catch (error) {
@@ -26,6 +29,6 @@ export function startRssCron(logger: { info: (obj: unknown, message?: string) =>
     }
   })
 
-  logger.info({ expression: env.RSS_CRON_EXPRESSION }, 'RSS scheduler enabled')
+  logger.info({ expression: env.RSS_CRON_EXPRESSION }, 'Source scheduler enabled')
   return task
 }

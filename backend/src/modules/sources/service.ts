@@ -6,7 +6,7 @@ export type SourceInput = {
   name: string
   url: string
   feedUrl?: string
-  type: 'rss' | 'newsletter' | 'manual' | 'api'
+  type: 'rss' | 'newsletter' | 'manual' | 'api' | 'scraped'
   enabled?: boolean
 }
 

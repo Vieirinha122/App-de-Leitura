@@ -23,7 +23,7 @@ const envSchema = z.object({
   RSS_CRON_ENABLED: z.enum(['true', 'false']).default('false'),
   RSS_CRON_EXPRESSION: z.string().default('0 */6 * * *'),
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
+  OPENAI_MODEL: z.string().default('gpt-4o'),
   OPENAI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().max(2000).default(500),
 
   // Secret para proteger a rota de cron externo (cron-job.org)
