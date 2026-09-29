@@ -1,14 +1,10 @@
 name: RSS Sync
 
 on:
-  # TESTE AGORA (11:40 BRT = 14:40 UTC) — descomente a linha abaixo para testar hoje
+  # PRODUÇÃO — 6h e 20h BRT (9h e 23h UTC)
   schedule:
-    - cron: '46 14 * * *'   # roda às 11:40 BRT (14:40 UTC)
-
-  # PRODUÇÃO — 6h e 20h BRT (9h e 23h UTC) — descomente quando validar
-  # schedule:
-  #   - cron: '0 9 * * *'    # 06:00 BRT
-  #   - cron: '0 23 * * *'   # 20:00 BRT
+    - cron: '0 9 * * *'    # 06:00 BRT
+    - cron: '0 23 * * *'   # 20:00 BRT
 
   # Permite rodar manual a qualquer momento (Actions → Run workflow)
   workflow_dispatch:
