@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import ShellHost from '@/app/ShellHost'
 import LoadingFallback from '@/components/LoadingFallback'
@@ -52,16 +52,19 @@ function ProtectedNoNavLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Wrapper that runs checkAuth once on app mount
+// Wrapper that runs checkAuth once on app mount (page reload).
+// Uses a ref to capture the *initial* persisted value so that a fresh login
+// does not trigger a redundant /me call (which can fail on mobile with
+// cross-site cookies not yet available).
 function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { checkAuth, isAuthenticated } = useAuthStore()
+  const checkAuth = useAuthStore((s) => s.checkAuth)
+  const initialAuth = useRef(useAuthStore.getState().isAuthenticated)
 
   useEffect(() => {
-    // Only run checkAuth if we have a persisted session to validate
-    if (isAuthenticated) {
+    if (initialAuth.current) {
       checkAuth()
     }
-  }, [checkAuth, isAuthenticated])
+  }, [checkAuth])
 
   return <>{children}</>
 }
