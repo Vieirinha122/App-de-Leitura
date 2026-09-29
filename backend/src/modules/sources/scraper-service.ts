@@ -191,6 +191,27 @@ function extractArticleUrlsFromHtml(html: string, baseUrl: string): string[] {
     }
   })
 
+  // Fallback genérico para sites antigos: pega links .htm/.html ou paths profundos
+  if (urls.length === 0) {
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href')
+      if (!href) return
+
+      try {
+        const resolved = new URL(href, baseUrlObj).toString()
+        if (new URL(resolved).hostname !== baseUrlObj.hostname) return
+
+        const path = new URL(resolved).pathname.toLowerCase()
+        // Link aponta pra .htm/.html ou está em subdiretório (3+ segments)
+        if (/\.(htm|html)$/.test(path) || path.split('/').length >= 3) {
+          urls.push(resolved)
+        }
+      } catch {
+        // URL inválida
+      }
+    })
+  }
+
   // Deduplica e filtra paths que parecem páginas institucionais
   const unique = [...new Set(urls)]
   return unique.filter(url => {

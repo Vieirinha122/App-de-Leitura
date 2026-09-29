@@ -4,7 +4,13 @@ import { parseArticleFromFeed } from './article-parser'
 import { scrapeSiteForArticles } from './scraper-service'
 
 const prisma = new PrismaClient()
-const parser = new Parser()
+// User-Agent de navegador pra não ser bloqueado por sites como InfoQ (406)
+const browserHeaders = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+}
+const parser = new Parser({
+  headers: browserHeaders
+})
 
 export type SyncResult = {
   sourceId: string
