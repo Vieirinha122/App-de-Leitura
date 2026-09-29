@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb, Loader2, CheckCircle2, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb, Loader2, RotateCcw } from 'lucide-react'
 import { format, addDays, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { fetchDailyRecommendation, fetchPreviousDaily, openArticle, completeArticle, fetchStats, fetchNextArticle } from './service'
