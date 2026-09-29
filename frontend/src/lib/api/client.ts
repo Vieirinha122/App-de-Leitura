@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/lib/stores/authStore'
 import { parseApiError } from './errors'
 
 export type ApiResult<T> = {
@@ -25,11 +26,24 @@ function isAuthSkipPath(path: string): boolean {
 
 async function refreshAccessToken(): Promise<boolean> {
   try {
+    const refreshToken = useAuthStore.getState().refreshToken
     const response = await fetch(`${apiBase()}/api/v1/auth/refresh`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ refreshToken }),
       credentials: 'include'
     })
-    return response.ok
+
+    if (!response.ok) return false
+
+    const data = await response.json()
+    if (data.accessToken && data.refreshToken) {
+      useAuthStore.getState().setTokens(data.accessToken, data.refreshToken)
+      return true
+    }
+    return false
   } catch {
     return false
   }
@@ -51,6 +65,12 @@ async function authorizedRequest(
     headers.set('Content-Type', 'application/json')
   }
 
+  // Inject Authorization Bearer token header if available
+  const accessToken = useAuthStore.getState().accessToken
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
+
   const response = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers,
@@ -68,7 +88,9 @@ async function authorizedRequest(
       // Retry original request once with new token
       return authorizedRequest(path, init, { retryOnUnauthorized: false })
     }
-    // Refresh failed - clear auth state (handled by auth store)
+    // Refresh failed - clear auth state
+    useAuthStore.getState().setUser(null)
+    useAuthStore.getState().setTokens(null, null)
   }
 
   return response

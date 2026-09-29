@@ -12,12 +12,15 @@ export type User = {
 
 type AuthState = {
   user: User | null
+  accessToken: string | null
+  refreshToken: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
 
   // Actions
   setUser: (user: User | null) => void
+  setTokens: (accessToken: string | null, refreshToken: string | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   setOnboardingCompleted: () => void
@@ -32,11 +35,14 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
 
       setOnboardingCompleted: () => set((state) => ({
         user: state.user ? { ...state.user, onboardingCompleted: true } : null
@@ -51,11 +57,16 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const { data } = await apiFetch<{ user: User }>('/api/v1/auth/login', {
+          const { data } = await apiFetch<{ user: User; accessToken: string; refreshToken: string }>('/api/v1/auth/login', {
             method: 'POST',
             body: JSON.stringify({ email, password })
           })
-          set({ user: data.user, isAuthenticated: true })
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            isAuthenticated: true
+          })
         } catch (error) {
           if (error instanceof Error) {
             set({ error: error.message })
@@ -69,11 +80,16 @@ export const useAuthStore = create<AuthState>()(
       register: async (name, email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const { data } = await apiFetch<{ user: User }>('/api/v1/auth/register', {
+          const { data } = await apiFetch<{ user: User; accessToken: string; refreshToken: string }>('/api/v1/auth/register', {
             method: 'POST',
             body: JSON.stringify({ name, email, password })
           })
-          set({ user: data.user, isAuthenticated: true })
+          set({
+            user: data.user,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            isAuthenticated: true
+          })
         } catch (error) {
           if (error instanceof Error) {
             set({ error: error.message })
@@ -92,7 +108,7 @@ export const useAuthStore = create<AuthState>()(
             body: JSON.stringify({})
           })
         } finally {
-          set({ user: null, isAuthenticated: false, isLoading: false, error: null })
+          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, error: null })
         }
       },
 
@@ -101,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await apiFetch<User>('/api/v1/auth/me')
           set({ user: data, isAuthenticated: true })
         } catch {
-          set({ user: null, isAuthenticated: false })
+          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
         }
       }
     }),
@@ -110,6 +126,8 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated
       })
     }

@@ -31,7 +31,15 @@ const meResponse = z.object({
 })
 
 const authResponse = z.object({
-  user: meResponse
+  user: meResponse,
+  accessToken: z.string(),
+  refreshToken: z.string()
+})
+
+const refreshResponse = z.object({
+  success: z.literal(true),
+  accessToken: z.string(),
+  refreshToken: z.string()
 })
 
 export async function authRoutes(app: FastifyInstance) {
@@ -67,7 +75,9 @@ export async function authRoutes(app: FastifyInstance) {
         ...user,
         createdAt: user.createdAt.toISOString(),
         onboardingCompleted: user.onboardingCompleted
-      }
+      },
+      accessToken,
+      refreshToken
     })
   })
 
@@ -97,18 +107,24 @@ export async function authRoutes(app: FastifyInstance) {
     await storeRefreshToken(user.id, refreshToken)
     setAuthCookies(reply, accessToken, refreshToken)
 
-    return { user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString(), onboardingCompleted: user.onboardingCompleted } }
+    return {
+      user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString(), onboardingCompleted: user.onboardingCompleted },
+      accessToken,
+      refreshToken
+    }
   })
 
   // POST /api/v1/auth/refresh
   app.post('/refresh', {
     schema: {
-      response: { 200: z.object({ success: z.literal(true) }) },
+      body: z.object({ refreshToken: z.string().optional() }).optional(),
+      response: { 200: refreshResponse },
       tags: ['Auth'],
-      summary: 'Renovar access token via refresh token (cookie HttpOnly)'
+      summary: 'Renovar access token via refresh token (cookie ou body)'
     }
   }, async (request, reply) => {
-    const refreshToken = request.cookies.refreshToken
+    const bodyToken = (request.body as { refreshToken?: string } | undefined)?.refreshToken
+    const refreshToken = request.cookies.refreshToken || bodyToken
     if (!refreshToken) {
       throw new UnauthorizedError('Refresh token não fornecido')
     }
@@ -135,7 +151,11 @@ export async function authRoutes(app: FastifyInstance) {
     await storeRefreshToken(payload.userId, newRefreshToken)
     setAuthCookies(reply, newAccessToken, newRefreshToken)
 
-    return { success: true as const }
+    return {
+      success: true as const,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
+    }
   })
 
   // GET /api/v1/auth/me
