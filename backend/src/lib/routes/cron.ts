@@ -54,7 +54,17 @@ export async function cronRoutes(app: FastifyInstance) {
     }
 
     // Sync de todas as fontes habilitadas (RSS e scraping)
-    const sources = await listSources()
+    let sources
+    try {
+      sources = await listSources()
+    } catch (dbError) {
+      app.log.error({ error: dbError }, 'Cron: falha ao buscar fontes (DB pode estar acordando)')
+      return reply.status(503).send({
+        message: 'Banco de dados indisponível no momento (pode estar acordando do scale-to-zero).',
+        reason: 'DB_CONNECTION_ERROR'
+      })
+    }
+
     const results: SyncResult[] = []
     const startedAt = Date.now()
 
@@ -70,6 +80,12 @@ export async function cronRoutes(app: FastifyInstance) {
       } catch (error) {
         app.log.error({ error, sourceId: source.id, sourceName: source.name }, 'Cron: falha ao sincronizar fonte')
         // Continua para as próximas fontes mesmo se uma falhar
+        results.push({
+          sourceId: source.id,
+          imported: 0,
+          skipped: 0,
+          message: `Erro: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+        })
       }
     }
 
