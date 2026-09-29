@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { getDailyRecommendation, getPreviousRecommendation, markArticleOpened, markArticleCompleted, getUserStats } from './service'
+import { getDailyRecommendation, getPreviousRecommendation, markArticleOpened, markArticleCompleted, getUserStats, getNextArticleCandidate } from './service'
 import { requireAuth } from '@/lib/auth/plugin'
 
 const dailyResponse = z.object({
@@ -181,5 +181,34 @@ export async function dailyRoutes(app: FastifyInstance) {
     preHandler: [requireAuth]
   }, async (request) => {
     return getUserStats(request.user!.id)
+  })
+
+  // POST /api/v1/daily/next - Get another article candidate for today (skip current)
+  app.post('/next', {
+    schema: {
+      response: { 200: dailyResponse.nullable() },
+      tags: ['Daily'],
+      summary: 'Obter outro artigo candidato para hoje (não substitui a recomendação oficial)',
+      security: [{ cookieAuth: [] }]
+    },
+    preHandler: [requireAuth]
+  }, async (request) => {
+    const article = await getNextArticleCandidate(request.user!.id)
+    if (!article) return null
+    return {
+      ...article,
+      date: article.date.toISOString(),
+      createdAt: article.createdAt.toISOString(),
+      article: {
+        ...article.article,
+        publishedAt: article.article.publishedAt?.toISOString() ?? null,
+        collectedAt: article.article.collectedAt.toISOString(),
+        readingHistory: article.article.readingHistory ? {
+          ...article.article.readingHistory,
+          openedAt: article.article.readingHistory.openedAt?.toISOString() ?? null,
+          completedAt: article.article.readingHistory.completedAt?.toISOString() ?? null
+        } : null
+      }
+    }
   })
 }

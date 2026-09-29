@@ -172,28 +172,13 @@ async function findNextArticleForUser(userId: string) {
 
   // Tenta primeiro buscar artigos das fontes dos tópicos do usuário
   const whereBase = {
-    status: 'new',
+    status: 'new' as const,
     id: { notIn: excludedIds.length > 0 ? excludedIds : undefined },
     sourceId: { notIn: [...blockedSources] },
     categoryId: { notIn: [...blockedCategories] }
   }
 
-  // Tipagem explícita para evitar erro TS7034
-  let candidates: Array<{
-    id: string
-    title: string
-    url: string
-    summary: string | null
-    readingTimeMinutes: number | null
-    publishedAt: Date | null
-    collectedAt: Date
-    status: string
-    tags: string[]
-    sourceId: string
-    categoryId: string | null
-    source: { id: string; name: string }
-    category: { id: string; name: string } | null
-  }> = []
+  let candidates: Awaited<ReturnType<typeof prisma.article.findMany>> = []
   if (sourceIdsFromTopics.length > 0) {
     candidates = await prisma.article.findMany({
       where: {
@@ -453,4 +438,152 @@ function formatRecommendation(rec: any, readingHistory: any = null, reason: stri
       } : null
     }
   }
+}
+
+/**
+ * Obtém outro artigo candidato para hoje (não substitui a recomendação oficial)
+ * Usado quando o usuário clica em "Outro artigo"
+ */
+export async function getNextArticleCandidate(userId: string): Promise<DailyRecommendationResult | null> {
+  // Busca a recomendação atual de hoje para excluir esse artigo
+  const dayStart = startOfDay(new Date())
+  const currentRecommendation = await prisma.dailyRecommendation.findUnique({
+    where: { userId_date: { userId, date: dayStart } },
+    select: { articleId: true }
+  })
+
+  const currentArticleId = currentRecommendation?.articleId
+
+  // Busca tópicos do usuário para personalizar a recomendação
+  const userTopics = await prisma.userTopic.findMany({
+    where: { userId },
+    select: { topicId: true }
+  })
+  const userTopicIds = userTopics.map(ut => ut.topicId)
+
+  const [readHistory, recommendations, lastRecommendation, preferences] = await Promise.all([
+    prisma.readingHistory.findMany({
+      where: { userId, completedAt: { not: null } },
+      select: { articleId: true, rating: true, article: { select: { sourceId: true, categoryId: true } } }
+    }),
+    prisma.dailyRecommendation.findMany({
+      where: { userId },
+      select: { articleId: true }
+    }),
+    prisma.dailyRecommendation.findFirst({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      include: { article: { select: { sourceId: true } } }
+    }),
+    prisma.userPreference.findMany({ where: { userId } })
+  ])
+
+  const excludedIds = [...new Set([
+    ...readHistory.map((item) => item.articleId),
+    ...recommendations.map((item) => item.articleId),
+    currentArticleId
+  ].filter(Boolean))].filter((id): id is string => Boolean(id))
+
+  const blockedSources = new Set(preferences.filter((item) => item.kind === 'source' && item.blocked).map((item) => item.targetId))
+  const blockedCategories = new Set(preferences.filter((item) => item.kind === 'category' && item.blocked).map((item) => item.targetId))
+
+  let sourceIdsFromTopics: string[] = []
+  if (userTopicIds.length > 0) {
+    const sourceTopics = await prisma.sourceTopic.findMany({
+      where: { topicId: { in: userTopicIds } },
+      select: { sourceId: true },
+      distinct: ['sourceId']
+    })
+    sourceIdsFromTopics = sourceTopics.map(st => st.sourceId)
+  }
+
+  const whereBase = {
+    status: 'new',
+    id: { notIn: excludedIds.length > 0 ? excludedIds : undefined },
+    sourceId: { notIn: [...blockedSources] },
+    categoryId: { notIn: [...blockedCategories] }
+  }
+
+  let candidates: Array<{
+    id: string
+    title: string
+    url: string
+    summary: string | null
+    readingTimeMinutes: number | null
+    publishedAt: Date | null
+    collectedAt: Date
+    status: string
+    tags: string[]
+    sourceId: string
+    categoryId: string | null
+    source: { id: string; name: string }
+    category: { id: string; name: string } | null
+  }> = []
+  if (sourceIdsFromTopics.length > 0) {
+    candidates = await prisma.article.findMany({
+      where: { ...whereBase, sourceId: { in: sourceIdsFromTopics } },
+      include: { source: true, category: true },
+      orderBy: { collectedAt: 'asc' },
+      take: 100
+    })
+  }
+
+  if (candidates.length === 0) {
+    candidates = await prisma.article.findMany({
+      where: whereBase,
+      include: { source: true, category: true },
+      orderBy: { collectedAt: 'asc' },
+      take: 100
+    })
+  }
+
+  if (candidates.length === 0) {
+    return null
+  }
+
+  const sourceWeights = new Map<string, number>()
+  const categoryWeights = new Map<string, number>()
+  for (const preference of preferences) {
+    if (preference.kind === 'source') sourceWeights.set(preference.targetId, preference.weight)
+    if (preference.kind === 'category') categoryWeights.set(preference.targetId, preference.weight)
+  }
+  for (const item of readHistory) {
+    const weight = item.rating === 'like' ? 2 : item.rating === 'dislike' ? -3 : 0
+    if (weight === 0) continue
+    sourceWeights.set(item.article.sourceId, (sourceWeights.get(item.article.sourceId) ?? 0) + weight)
+    if (item.article.categoryId) {
+      categoryWeights.set(item.article.categoryId, (categoryWeights.get(item.article.categoryId) ?? 0) + weight)
+    }
+  }
+
+  const sourceWasUsedYesterday = lastRecommendation?.article.sourceId
+  const isWeekday = [1, 2, 3, 4, 5].includes(new Date().getDay())
+  const scored = candidates.map((article, index) => {
+    const readingTimeBonus = isWeekday && article.readingTimeMinutes
+      ? Math.max(0, 10 - article.readingTimeMinutes) / 2
+      : 0
+
+    return {
+      article,
+      score:
+        (sourceWeights.get(article.sourceId) ?? 0) +
+        (article.categoryId ? categoryWeights.get(article.categoryId) ?? 0 : 0) +
+        readingTimeBonus +
+        (article.sourceId === sourceWasUsedYesterday ? -5 : 0) -
+        index * 0.01
+    }
+  })
+
+  const alternatives = sourceWasUsedYesterday
+    ? scored.filter((item) => item.article.sourceId !== sourceWasUsedYesterday)
+    : scored
+
+  const best = (alternatives.length > 0 ? alternatives : scored)
+    .sort((left, right) => right.score - left.score)[0].article
+
+  return formatRecommendation(
+    { id: 'candidate', userId, articleId: best.id, date: dayStart, createdAt: new Date() },
+    null,
+    'Outro artigo sugerido para hoje'
+  )
 }

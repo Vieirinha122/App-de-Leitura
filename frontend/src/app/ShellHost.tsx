@@ -8,11 +8,6 @@ export default function ShellHost() {
       <main className="flex-1 w-full">
         <Outlet />
       </main>
-      <footer className="border-t border-ink-200 bg-white py-6">
-        <div className="container-narrow text-center text-caption text-ink-500">
-          Daily Read &mdash; Sua leitura diária de tecnologia, IA e programação
-        </div>
-      </footer>
     </div>
   )
 }

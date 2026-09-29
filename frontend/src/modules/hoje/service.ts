@@ -39,3 +39,8 @@ export async function fetchStats(): Promise<Stats> {
   const { data } = await api.get<Stats>('/api/v1/daily/stats')
   return data
 }
+
+export async function fetchNextArticle(): Promise<DailyRecommendation | null> {
+  const { data } = await api.post<DailyRecommendation | null>('/api/v1/daily/next', {})
+  return data
+}

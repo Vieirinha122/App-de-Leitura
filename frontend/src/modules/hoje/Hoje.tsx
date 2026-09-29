@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, ExternalLink, BookOpen, ArrowRight, Flame, Award, Brain, HelpCircle, Lightbulb, Loader2, CheckCircle2, RotateCcw } from 'lucide-react'
 import { format, addDays, isToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { fetchDailyRecommendation, fetchPreviousDaily, openArticle, completeArticle, fetchStats } from './service'
+import { fetchDailyRecommendation, fetchPreviousDaily, openArticle, completeArticle, fetchStats, fetchNextArticle } from './service'
 import Rating from '@/components/Rating'
 import { useUIStore } from '@/lib/stores/uiStore'
 import { api } from '@/lib/api/client'
@@ -26,6 +26,7 @@ export default function Hoje() {
   const [currentDate, setCurrentDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
   const [iaResult, setIaResult] = useState<{ type: 'summary' | 'questions' | 'explanation'; content: string[] | string } | null>(null)
   const [iaLoading, setIaLoading] = useState(false)
+  const [isFetchingNext, setIsFetchingNext] = useState(false)
 
   const isCurrentDay = isToday(parseISO(currentDate))
   const fetcher = isCurrentDay ? fetchDailyRecommendation : () => fetchPreviousDaily(currentDate)
@@ -85,6 +86,26 @@ export default function Hoje() {
     }
   }
 
+  const handleNextArticle = async () => {
+    if (isFetchingNext) return
+    setIsFetchingNext(true)
+    try {
+      const next = await fetchNextArticle()
+      if (next?.article) {
+        addToast({ type: 'success', title: 'Novo artigo', message: 'Aqui está outro artigo para você' })
+        // Atualiza o cache do daily com o novo artigo (sem substituir a recomendação oficial)
+        queryClient.setQueryData(['daily', currentDate], next)
+        setIaResult(null)
+      } else {
+        addToast({ type: 'error', title: 'Sem mais artigos', message: 'Não há mais artigos disponíveis para hoje' })
+      }
+    } catch {
+      addToast({ type: 'error', title: 'Erro', message: 'Não foi possível buscar outro artigo' })
+    } finally {
+      setIsFetchingNext(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-16rem)] items-center justify-center px-4">
@@ -134,9 +155,11 @@ export default function Hoje() {
   const tags = article.tags?.slice(0, 3) ?? []
   const sourceName = article.source?.name ?? 'Fonte desconhecida'
   const categoryName = article.category?.name ?? 'Sem categoria'
+  // Remove o texto residual do RSS ("Read the full post → ...")
+  const summary = article.summary?.replace(/Read the full post[\s\S]*$/i, '').trim()
 
   return (
-    <div className="container-narrow py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header with date navigation */}
       <header className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -202,94 +225,179 @@ export default function Hoje() {
         </div>
       </header>
 
+      {/* Duas colunas: artigo à esquerda, ações de aprofundamento e avaliação à direita */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Article Card */}
-      <article className="card card-hover p-6 sm:p-8 animate-fade-in">
-        {daily.reason && (
-          <p className="mb-4 text-body-sm text-ink-500">
-            <span className="font-medium text-ink-700">Por que esta leitura?</span> {daily.reason}
-          </p>
-        )}
-        {/* Category badge */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="badge-sage">{categoryName}</span>
-          <span className="badge-neutral">{sourceName}</span>
-          {tags.map((tag) => (
-            <span key={tag} className="badge-neutral">{tag}</span>
-          ))}
-        </div>
-
-        {/* Title */}
-        <h2 className="font-display text-display-md text-ink-900 mb-4 text-balance leading-tight">
-          {article.title}
-        </h2>
-
-        {/* Summary */}
-        {article.summary && (
-          <div className="prose prose-ink max-w-none mb-6 text-body-lg text-ink-600 line-clamp-4">
-            <p>{article.summary}</p>
-          </div>
-        )}
-
-        {/* Meta */}
-        <div className="flex flex-wrap items-center gap-4 mb-6 text-body-sm text-ink-500">
-          {article.publishedAt && (
-            <span className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              Publicado em {format(parseISO(article.publishedAt), 'd MMM yyyy', { locale: ptBR })}
-            </span>
+        <article className="card card-hover p-6 sm:p-8 animate-fade-in">
+          {daily.reason && (
+            <p className="mb-4 text-body-sm text-ink-500">
+              <span className="font-medium text-ink-700">Por que esta leitura?</span> {daily.reason}
+            </p>
           )}
-        </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-ink-200">
-          <button
-            onClick={() => handleOpen(article.id, article.url)}
-            className="btn-primary flex-1 sm:flex-none"
-            disabled={isLoading}
-          >
-            <ExternalLink className="h-5 w-5" />
-            <span>Ler artigo</span>
-            <ArrowRight className="h-5 w-5" />
-          </button>
-
-          <button
-            onClick={() => handleComplete(article.id, 'like')}
-            className="btn-secondary flex-1 sm:flex-none"
-            disabled={isLoading}
-          >
-            <BookOpen className="h-5 w-5" />
-            Marcar como lido
-          </button>
-        </div>
-
-        {/* Ações de IA */}
-        <div className="mt-6 border-t border-ink-200 pt-6">
-          <p className="mb-3 text-body-sm font-medium text-ink-700">Aprofundar esta leitura</p>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-secondary" onClick={() => executarAcaoIa('summary')} disabled={iaLoading}><Brain className="h-4 w-4" /> Resumir</button>
-            <button className="btn-secondary" onClick={() => executarAcaoIa('questions')} disabled={iaLoading}><HelpCircle className="h-4 w-4" /> Perguntas</button>
-            <button className="btn-secondary" onClick={() => executarAcaoIa('explanation')} disabled={iaLoading}><Lightbulb className="h-4 w-4" /> Explicar</button>
+          {/* Category badge */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <span className="badge-sage">{categoryName}</span>
+            <span className="badge-neutral">{sourceName}</span>
+            {tags.map((tag) => (
+              <span key={tag} className="badge-neutral">{tag}</span>
+            ))}
           </div>
-          {iaResult && <div className="mt-4 rounded-lg bg-amber-50 p-4 text-body-sm text-ink-700 text-justify"><p className="mb-2 font-semibold">{iaResult.type === 'summary' ? 'Resumo' : iaResult.type === 'questions' ? 'Perguntas de fixação' : 'Explicação'}</p>{Array.isArray(iaResult.content) ? <ul className="list-disc space-y-1 pl-5 text-justify">{iaResult.content.map((item) => <li key={item}>{item}</li>)}</ul> : <p>{iaResult.content}</p>}</div>}
-        </div>
 
-        {/* Rating */}
-        <div className="mt-6 pt-6 border-t border-ink-200">
-          <p className="text-body-sm font-medium text-ink-700 mb-3">Como foi a leitura?</p>
-          <Rating
-            value={null}
-            onChange={(rating) => handleComplete(article.id, rating)}
-            size="md"
-          />
-        </div>
-      </article>
+          {/* Title */}
+          <h2 className="font-display text-display-md text-ink-900 mb-4 text-balance leading-tight">
+            {article.title}
+          </h2>
 
-      {/* Empty state for previous days without recommendation */}
-      {!isCurrentDay && !daily && (
-        <div className="mt-8 text-center text-ink-500">
-          <p className="text-body">Nenhuma leitura registrada para este dia.</p>
-        </div>
-      )}
+          {/* Summary */}
+          {summary && (
+            <p className="mb-6 line-clamp-5 text-body-lg text-ink-600 text-justify">{summary}</p>
+          )}
+
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-4 mb-6 text-body-sm text-ink-500">
+            {article.publishedAt && (
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
+                Publicado em {format(parseISO(article.publishedAt), 'd MMM yyyy', { locale: ptBR })}
+              </span>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-ink-200">
+            <button
+              onClick={() => handleOpen(article.id, article.url)}
+              className="btn-primary flex-1 sm:flex-none"
+            >
+              <ExternalLink className="h-5 w-5" />
+              <span>Ler artigo</span>
+              <ArrowRight className="h-5 w-5" />
+            </button>
+
+            <button
+              onClick={() => handleComplete(article.id, 'like')}
+              className="btn-secondary flex-1 sm:flex-none"
+            >
+              <BookOpen className="h-5 w-5" />
+              Marcar como lido
+            </button>
+
+            <button
+              onClick={handleNextArticle}
+              className="btn-ghost flex-1 sm:flex-none"
+              disabled={isFetchingNext}
+            >
+              {isFetchingNext ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Buscando...</span>
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="h-5 w-5" />
+                  <span>Outro artigo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </article>
+
+        {/* Coluna lateral */}
+        <aside className="space-y-6 lg:sticky lg:top-6">
+          {/* Ações de IA */}
+          <section className="card p-5">
+            {iaResult && !iaLoading ? (
+              // Estado: resultado carregado
+              <div className="space-y-4 animate-fade-in">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-overline text-amber-600 font-semibold tracking-wide">
+                    {iaResult.type === 'summary' ? 'RESUMO DA IA' : iaResult.type === 'questions' ? 'PERGUNTAS DE FIXAÇÃO' : 'EXPLICAÇÃO'}
+                  </p>
+                </div>
+
+                {Array.isArray(iaResult.content) ? (
+                  <div className="space-y-2">
+                    <p className="text-body-sm text-ink-600">
+                      {iaResult.type === 'summary' && 'Aqui estão os pontos principais do artigo:'}
+                      {iaResult.type === 'questions' && 'Perguntas para fixar o que você leu:'}
+                      {iaResult.type === 'explanation' && 'Conceitos-chave explicados de forma simples:'}
+                    </p>
+                    <ul className="space-y-2 pl-1">
+                      {iaResult.content.map((item, idx) => (
+                        <li key={idx} className="flex gap-3 text-body-sm text-ink-700 leading-relaxed">
+                          <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-amber-500 mt-2" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-body-sm text-ink-700">{iaResult.content}</p>
+                )}
+
+                <button
+                  className="btn-ghost w-full justify-center gap-2 text-body-sm"
+                  onClick={() => setIaResult(null)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Ver outras opções
+                </button>
+              </div>
+            ) : (
+              // Estado: botões de ação
+              <>
+                <p className="mb-3 text-body-sm font-medium text-ink-700 text-center">Aprofundar esta leitura</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      className="btn-secondary flex-col gap-1 px-2 py-3 text-body-sm"
+                      onClick={() => executarAcaoIa('summary')}
+                      disabled={iaLoading}
+                    >
+                      <Brain className="h-5 w-5" />
+                      <span>Resumir</span>
+                    </button>
+
+                    <button
+                      className="btn-secondary flex-col gap-1 px-2 py-3 text-body-sm"
+                      onClick={() => executarAcaoIa('questions')}
+                      disabled={iaLoading}
+                    >
+                      <HelpCircle className="h-5 w-5" />
+                      <span>Perguntas</span>
+                    </button>
+
+                    <button
+                      className="btn-secondary flex-col gap-1 px-2 py-3 text-body-sm"
+                      onClick={() => executarAcaoIa('explanation')}
+                      disabled={iaLoading}
+                    >
+                      <Lightbulb className="h-5 w-5" />
+                      <span>Explicar</span>
+                    </button>
+                  </div>
+
+                {iaLoading && (
+                  <p className="mt-4 flex justify-center items-center gap-2 text-body-sm text-ink-500 text-center">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Gerando conteúdo...
+                  </p>
+                )}
+              </>
+            )}
+          </section>
+
+          {/* Rating */}
+          <section className="card p-5">
+            <p className="text-overline text-ink-500 font-semibold tracking-wide mb-1">COMO FOI A LEITURA?</p>
+            <p className="text-caption text-ink-500 mb-4">Seu feedback melhora as próximas escolhas.</p>
+            <Rating
+              value={null}
+              onChange={(rating) => handleComplete(article.id, rating)}
+              size="md"
+            />
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }
