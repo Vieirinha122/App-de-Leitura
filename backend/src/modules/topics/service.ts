@@ -123,7 +123,10 @@ export async function processOnboarding(userId: string, input: OnboardingTopicsI
 
       // Falha explícita se nenhuma fonte foi criada/vinculada
       if (discoveryResult.sourcesCreated === 0 && discoveryResult.sourcesLinked === 0) {
-        const errorMsg = 'Nenhuma fonte válida foi encontrada para os tópicos selecionados. Verifique logs do discovery.'
+        const detalhes = discoveryResult.errors.length > 0
+          ? ` Erros: ${discoveryResult.errors.slice(0, 5).join('; ')}.`
+          : ''
+        const errorMsg = `Nenhuma fonte válida foi encontrada para os tópicos selecionados.${detalhes} Verifique logs do discovery.`
         console.error(`❌ ${errorMsg}`)
         throw new Error(errorMsg)
       }

@@ -148,17 +148,20 @@ async function getCategoryIdForTopic(topicSlug: string): Promise<string> {
 }
 
 /**
- * Schema para sugestão de fonte via LLM
+ * Schema para sugestão de fonte via LLM.
+ * Mais tolerante que o schema enviado à OpenAI: aceita qualquer string para url e feedUrl,
+ * pois a validação real de URL acontece em validarEDescobrirFeed.
+ * Isso evita rejeitar toda a resposta da LLM por uma única fonte com feedUrl inválido (ex: "N/A").
  */
 const fonteSugeridaSchema = z.object({
   name: z.string().min(1).max(200),
-  url: z.string().url(),
-  feedUrl: z.string().url().or(z.literal('')).optional().transform(v => v === '' ? undefined : v),
-  description: z.string().or(z.literal('')).optional().transform(v => v === '' ? undefined : v)
+  url: z.string().min(1),
+  feedUrl: z.string().optional().nullable().transform(v => v === '' || v === null ? undefined : v),
+  description: z.string().optional().nullable().transform(v => v === '' || v === null ? undefined : v)
 })
 
 const fontesSugeridasSchema = z.object({
-  sources: z.array(fonteSugeridaSchema).min(1).max(15)
+  sources: z.array(fonteSugeridaSchema).max(15)
 })
 
 type FonteSugerida = z.infer<typeof fonteSugeridaSchema>
@@ -264,8 +267,9 @@ async function sugerirFontesViaLLM(topicoSlug: string): Promise<FonteSugerida[]>
   const response = await openai.responses.create({
     model: env.OPENAI_MODEL,
     instructions: `Você é um curador de conteúdo especializado em encontrar fontes RSS/Atom confiáveis.
-    Retorne APENAS JSON válido seguindo o schema: { sources: [{ name, url, feedUrl?, description? }] }
-    Priorize fontes que tenham RSS/Atom feed conhecido. Se não souber o feedUrl, omita o campo.
+    Retorne APENAS JSON válido seguindo o schema: { sources: [{ name, url, feedUrl, description }] }
+    Todos os campos são obrigatórios. Se não souber o feedUrl de uma fonte, retorne uma string vazia "" em vez de omitir.
+    Priorize fontes que tenham RSS/Atom feed conhecido.
     Não invente URLs. Use apenas fontes reais e conhecidas.`,
     input: prompt,
     text: {
@@ -452,25 +456,33 @@ export async function discoverAndSaveSourcesForTopics(topicIds: string[]): Promi
   let sourcesLinked = 0
 
   for (const topic of topics) {
+    console.log(`🔍 Descobrindo fontes para tópico: ${topic.name} (${topic.slug})`)
+
+    // 1. Fontes conhecidas (garantia mínima — sempre disponíveis, mesmo se LLM falhar)
+    const fontesConhecidas = FONTES_CONHECIDAS[topic.slug] ?? []
+    console.log(`   📚 ${fontesConhecidas.length} fontes conhecidas disponíveis`)
+
+    // 2. LLM sugere fontes (pode falhar sem comprometer as fontes conhecidas)
+    let fontesSugeridas: FonteSugerida[] = []
     try {
-      console.log(`🔍 Descobrindo fontes para tópico: ${topic.name} (${topic.slug})`)
-
-      // 1. LLM sugere fontes
-      const fontesSugeridas = await sugerirFontesViaLLM(topic.slug)
+      fontesSugeridas = await sugerirFontesViaLLM(topic.slug)
       console.log(`   🤖 LLM sugeriu ${fontesSugeridas.length} fontes`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+      errors.push(`Tópico ${topic.name}: falha na descoberta via LLM — ${msg}`)
+      console.error(`   ⚠️ LLM falhou para ${topic.name}: ${msg}`)
+    }
 
-      // 2. Adiciona fontes conhecidas (garantia mínima de fontes válidas)
-      const fontesConhecidas = FONTES_CONHECIDAS[topic.slug] ?? []
-      console.log(`   📚 ${fontesConhecidas.length} fontes conhecidas disponíveis`)
+    // 3. Une LLM + fontes conhecidas, deduplicando por URL
+    const fontesUnicas = [
+      ...fontesSugeridas,
+      ...fontesConhecidas.filter((fc) => !fontesSugeridas.some((fs) => sanitizeUrl(fs.url) === sanitizeUrl(fc.url)))
+    ]
+    console.log(`   📋 Total único: ${fontesUnicas.length} fontes para validar`)
 
-      // Une LLM + fontes conhecidas, deduplicando por URL
-      const fontesUnicas = [
-        ...fontesSugeridas,
-        ...fontesConhecidas.filter((fc) => !fontesSugeridas.some((fs) => sanitizeUrl(fs.url) === sanitizeUrl(fc.url)))
-      ]
-      console.log(`   📋 Total único: ${fontesUnicas.length} fontes para validar`)
-
-      // 3. Valida e descobre feeds para cada fonte
+    // 4. Valida e salva (isolado do try/catch da LLM)
+    try {
+      // Valida e descobre feeds para cada fonte
       const fontesValidadas: Array<{ name: string; url: string; feedUrl: string; type: 'rss' | 'atom' | 'scraped' }> = []
       const fontesFalhas: Array<{ name: string; url: string; motivo: string }> = []
 
@@ -486,7 +498,7 @@ export async function discoverAndSaveSourcesForTopics(topicIds: string[]): Promi
 
       console.log(`   ✅ ${fontesValidadas.length} fontes com feed válido`)
 
-      // 3. Salva fontes e vincula ao tópico
+      // Salva fontes e vincula ao tópico
       for (const fonte of fontesValidadas) {
         const existingSource = await prisma.source.findFirst({
           where: { url: fonte.url }
@@ -536,10 +548,9 @@ export async function discoverAndSaveSourcesForTopics(topicIds: string[]): Promi
         }
         console.log(`   ────────────────────────────\n`)
       }
-
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido'
-      errors.push(`Tópico ${topic.name}: ${msg}`)
+      errors.push(`Tópico ${topic.name}: erro na validação/salvamento — ${msg}`)
       console.error(`   ❌ Erro no tópico ${topic.name}:`, msg)
     }
   }
