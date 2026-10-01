@@ -186,6 +186,10 @@ export async function dailyRoutes(app: FastifyInstance) {
   // POST /api/v1/daily/next - Get another article candidate for today (skip current)
   app.post('/next', {
     schema: {
+      body: z.object({
+        currentArticleId: z.string().optional(),
+        seenArticleIds: z.array(z.string()).optional()
+      }).optional(),
       response: { 200: dailyResponse.nullable() },
       tags: ['Daily'],
       summary: 'Obter outro artigo candidato para hoje (não substitui a recomendação oficial)',
@@ -193,7 +197,8 @@ export async function dailyRoutes(app: FastifyInstance) {
     },
     preHandler: [requireAuth]
   }, async (request) => {
-    const article = await getNextArticleCandidate(request.user!.id)
+    const { currentArticleId, seenArticleIds } = (request.body as { currentArticleId?: string; seenArticleIds?: string[] }) ?? {}
+    const article = await getNextArticleCandidate(request.user!.id, currentArticleId, seenArticleIds)
     if (!article) return null
     return {
       ...article,

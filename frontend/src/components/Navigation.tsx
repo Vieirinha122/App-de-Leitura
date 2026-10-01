@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { BookOpen, Library, History, Rss, Menu, X, LogOut, User, ChevronDown } from 'lucide-react'
+import { BookOpen, Bookmark, Library, History, Rss, Menu, X, LogOut, User, ChevronDown } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useUIStore } from '@/lib/stores/uiStore'
@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils/date'
 const navigation = [
   { path: '/hoje', label: 'Hoje', icon: BookOpen },
   { path: '/biblioteca', label: 'Biblioteca', icon: Library },
+  { path: '/salvos', label: 'Salvos', icon: Bookmark },
   { path: '/historico', label: 'Histórico', icon: History },
   { path: '/fontes', label: 'Fontes', icon: Rss }
 ] as const

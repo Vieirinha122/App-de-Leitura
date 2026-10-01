@@ -29,6 +29,28 @@ export function truncate(str: string, length: number): string {
   return str.slice(0, length - 1) + '…'
 }
 
+/**
+ * Gera um UUID v4 com fallback para navegadores que não implementam crypto.randomUUID
+ * (alguns WebViews Android mais antigos expõem crypto mas sem randomUUID).
+ * Usa crypto.getRandomValues que é suportado desde 2012 na maioria dos navegadores.
+ */
+export function uuidv4(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  // Fallback: constrói UUID v4 manualmente a partir de bytes aleatórios
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+
+  // Define versão 4 (UUID) e variante RFC 4122
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
+  return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10, 16).join('')}`
+}
+
 export function slugify(str: string): string {
   return str
     .toLowerCase()

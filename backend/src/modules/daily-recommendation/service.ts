@@ -444,7 +444,11 @@ function formatRecommendation(rec: any, readingHistory: any = null, reason: stri
  * Obtém outro artigo candidato para hoje (não substitui a recomendação oficial)
  * Usado quando o usuário clica em "Outro artigo"
  */
-export async function getNextArticleCandidate(userId: string): Promise<DailyRecommendationResult | null> {
+export async function getNextArticleCandidate(
+  userId: string,
+  activeArticleId?: string,
+  seenArticleIds?: string[]
+): Promise<DailyRecommendationResult | null> {
   // Busca a recomendação atual de hoje para excluir esse artigo
   const dayStart = startOfDay(new Date())
   const currentRecommendation = await prisma.dailyRecommendation.findUnique({
@@ -481,6 +485,8 @@ export async function getNextArticleCandidate(userId: string): Promise<DailyReco
   const excludedIds = [...new Set([
     ...readHistory.map((item) => item.articleId),
     ...recommendations.map((item) => item.articleId),
+    ...(seenArticleIds ?? []),
+    activeArticleId,
     currentArticleId
   ].filter(Boolean))].filter((id): id is string => Boolean(id))
 
@@ -582,7 +588,7 @@ export async function getNextArticleCandidate(userId: string): Promise<DailyReco
     .sort((left, right) => right.score - left.score)[0].article
 
   return formatRecommendation(
-    { id: 'candidate', userId, articleId: best.id, date: dayStart, createdAt: new Date() },
+    { id: 'candidate', userId, articleId: best.id, article: best, date: dayStart, createdAt: new Date() },
     null,
     'Outro artigo sugerido para hoje'
   )

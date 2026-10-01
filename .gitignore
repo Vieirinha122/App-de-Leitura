@@ -41,6 +41,12 @@ coverage/
 .eslintcache
 .turbo/
 
+# Graphify (knowledge graph output - local/generated only)
+graphify-out/
+
+# OpenCode agent config (local tooling)
+.opencode/
+
 # Prisma
 backend/prisma/migrations/.migration_lock.toml
 

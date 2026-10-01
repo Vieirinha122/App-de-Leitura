@@ -40,7 +40,7 @@ export async function fetchStats(): Promise<Stats> {
   return data
 }
 
-export async function fetchNextArticle(): Promise<DailyRecommendation | null> {
-  const { data } = await api.post<DailyRecommendation | null>('/api/v1/daily/next', {})
+export async function fetchNextArticle(currentArticleId?: string, seenArticleIds?: string[]): Promise<DailyRecommendation | null> {
+  const { data } = await api.post<DailyRecommendation | null>('/api/v1/daily/next', { currentArticleId, seenArticleIds })
   return data
 }

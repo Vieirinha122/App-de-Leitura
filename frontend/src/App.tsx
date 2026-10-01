@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 // Lazy-loaded modules - code splitting per feature
 const Hoje = lazy(() => import('@/modules/hoje'))
 const Biblioteca = lazy(() => import('@/modules/biblioteca'))
+const Salvos = lazy(() => import('@/modules/salvos'))
 const Historico = lazy(() => import('@/modules/historico'))
 const Fontes = lazy(() => import('@/modules/fontes'))
 const Auth = lazy(() => import('@/modules/auth'))
@@ -94,6 +95,10 @@ function App() {
             <Route
               path="biblioteca"
               element={<ProtectedRoute><Biblioteca /></ProtectedRoute>}
+            />
+            <Route
+              path="salvos"
+              element={<ProtectedRoute><Salvos /></ProtectedRoute>}
             />
             <Route
               path="historico"

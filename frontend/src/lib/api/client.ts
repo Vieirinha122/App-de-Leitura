@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/lib/stores/authStore'
 import { parseApiError } from './errors'
+import { uuidv4 } from '@/lib/utils'
 
 export type ApiResult<T> = {
   data: T
@@ -54,7 +55,7 @@ async function authorizedRequest(
   init: RequestInit = {},
   options: { retryOnUnauthorized?: boolean } = {}
 ): Promise<Response> {
-  const requestId = crypto.randomUUID()
+  const requestId = uuidv4()
   const headers = new Headers(init.headers)
 
   headers.set('X-Request-ID', requestId)
