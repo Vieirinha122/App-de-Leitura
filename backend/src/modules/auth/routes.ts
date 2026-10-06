@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, verifyPassword } from '@/lib/auth/password'
-import { createAccessToken, createRefreshToken, verifyRefreshToken, storeRefreshToken, revokeRefreshToken } from '@/lib/auth/tokens'
+import { createAccessToken, createRefreshToken, verifyRefreshToken, storeRefreshToken, revokeRefreshToken, revokeAllUserRefreshTokens } from '@/lib/auth/tokens'
 import { setAuthCookies } from '@/lib/auth/cookies'
 import { UnauthorizedError, ValidationError } from '@/lib/errors/handler'
 import { requireAuth } from '@/lib/auth/plugin'
@@ -19,6 +19,18 @@ const registerSchema = z.object({
     name: z.string().min(2).max(100),
     email: z.string().email(),
     password: z.string().min(8).max(128)
+  })
+})
+
+// Reset direto de senha (sem email/token): email + nova senha + confirmação
+const resetPasswordDirectSchema = z.object({
+  body: z.object({
+    email: z.string().email(),
+    password: z.string().min(8).max(128),
+    confirmPassword: z.string().min(8).max(128)
+  }).refine(data => data.password === data.confirmPassword, {
+    message: 'Senhas não conferem',
+    path: ['confirmPassword']
   })
 })
 
@@ -40,6 +52,11 @@ const refreshResponse = z.object({
   success: z.literal(true),
   accessToken: z.string(),
   refreshToken: z.string()
+})
+
+const simpleSuccessResponse = z.object({
+  success: z.literal(true),
+  message: z.string()
 })
 
 export async function authRoutes(app: FastifyInstance) {
@@ -112,6 +129,43 @@ export async function authRoutes(app: FastifyInstance) {
       accessToken,
       refreshToken
     }
+  })
+
+  // POST /api/v1/auth/reset-password — reset direto (sem email/token)
+  app.post('/reset-password', {
+    schema: {
+      body: resetPasswordDirectSchema.shape.body,
+      response: { 200: simpleSuccessResponse },
+      tags: ['Auth'],
+      summary: 'Redefinir senha diretamente (email + nova senha)'
+    }
+  }, async (request, reply) => {
+    const { email, password } = request.body as z.infer<typeof resetPasswordDirectSchema>['body']
+
+    const user = await prisma.user.findUnique({ where: { email } })
+
+    // Sempre retorna sucesso para não vazar se o email existe
+    const successResponse = {
+      success: true as const,
+      message: 'Se o email estiver cadastrado, a senha foi redefinida. Faça login com a nova senha.'
+    }
+
+    if (!user) {
+      return reply.send(successResponse)
+    }
+
+    const passwordHash = await hashPassword(password)
+
+    // Atualiza senha e revoga todas as sessões ativas
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash }
+      })
+      await revokeAllUserRefreshTokens(user.id)
+    })
+
+    return reply.send(successResponse)
   })
 
   // POST /api/v1/auth/refresh

@@ -41,3 +41,13 @@ export async function validateRefreshToken(token: string): Promise<boolean> {
   const stored = await prisma.refreshToken.findUnique({ where: { token } })
   return !!stored && !stored.revokedAt && stored.expiresAt > new Date()
 }
+
+/**
+ * Revoga todos os refresh tokens do usuário (logout de todas as sessões)
+ */
+export async function revokeAllUserRefreshTokens(userId: string): Promise<void> {
+  await prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() }
+  })
+}
