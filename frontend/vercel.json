@@ -8,7 +8,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://api.dailyread.app/api/$1"
+      "destination": "https://app-de-leitura.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
