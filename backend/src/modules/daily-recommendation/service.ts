@@ -98,6 +98,55 @@ export async function getDailyRecommendation(userId: string, date: Date = new Da
   return formatRecommendation(recommendation, null, 'Selecionado com base no histórico e na rotação de fontes')
 }
 
+/**
+ * Força a geração de uma nova recomendação para HOJE, substituindo qualquer uma já existente.
+ * Chamada no login para garantir que o usuário sempre receba um artigo fresco,
+ * independente de ter lido ou não o artigo do dia anterior.
+ */
+export async function generateFreshDailyRecommendation(userId: string): Promise<DailyRecommendationResult | null> {
+  const dayStart = startOfDay(new Date())
+
+  // Busca a recomendação de hoje (se existe) para excluir seu artigo da nova busca
+  const existing = await prisma.dailyRecommendation.findUnique({
+    where: { userId_date: { userId, date: dayStart } },
+    select: { id: true, articleId: true }
+  })
+
+  // Procura um novo artigo, excluindo o artigo atual de hoje (evita repetir)
+  const article = await findNextArticleForUser(userId, existing?.articleId)
+
+  // Fallback: se não há candidato, mantém a recomendação existente (se houver)
+  if (!article) {
+    if (existing) {
+      const rec = await prisma.dailyRecommendation.findUnique({
+        where: { id: existing.id },
+        include: { article: { include: { source: true, category: true } } }
+      })
+      return rec ? formatRecommendation(rec, null, 'Recomendação mantida') : null
+    }
+    return null
+  }
+
+  // Remove a antiga e cria a nova dentro de transação (respeita unique constraints)
+  await prisma.$transaction(async (tx) => {
+    if (existing) {
+      await tx.dailyRecommendation.delete({ where: { id: existing.id } })
+    }
+    await tx.dailyRecommendation.create({
+      data: { userId, articleId: article.id, date: dayStart },
+      include: { article: { include: { source: true, category: true } } }
+    })
+  })
+
+  // Busca a recomendação recém-criada para formatar a resposta
+  const rec = await prisma.dailyRecommendation.findUnique({
+    where: { userId_date: { userId, date: dayStart } },
+    include: { article: { include: { source: true, category: true } } }
+  })
+
+  return rec ? formatRecommendation(rec, null, 'Nova recomendação gerada no login') : null
+}
+
 export async function getPreviousRecommendation(userId: string, date: Date): Promise<DailyRecommendationResult | null> {
   const dayStart = startOfDay(date)
 
@@ -126,7 +175,7 @@ export async function getPreviousRecommendation(userId: string, date: Date): Pro
   return formatRecommendation(recommendation, readingHistory, 'Leitura recomendada em um dia anterior')
 }
 
-async function findNextArticleForUser(userId: string) {
+async function findNextArticleForUser(userId: string, excludeArticleId?: string) {
   // Busca tópicos do usuário para personalizar a recomendação
   const userTopics = await prisma.userTopic.findMany({
     where: { userId },
@@ -153,7 +202,8 @@ async function findNextArticleForUser(userId: string) {
 
   const excludedIds = [...new Set([
     ...readHistory.map((item) => item.articleId),
-    ...recommendations.map((item) => item.articleId)
+    ...recommendations.map((item) => item.articleId),
+    ...(excludeArticleId ? [excludeArticleId] : [])
   ])]
 
   const blockedSources = new Set(preferences.filter((item) => item.kind === 'source' && item.blocked).map((item) => item.targetId))

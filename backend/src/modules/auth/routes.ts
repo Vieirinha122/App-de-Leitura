@@ -6,6 +6,7 @@ import { createAccessToken, createRefreshToken, verifyRefreshToken, storeRefresh
 import { setAuthCookies } from '@/lib/auth/cookies'
 import { UnauthorizedError, ValidationError } from '@/lib/errors/handler'
 import { requireAuth } from '@/lib/auth/plugin'
+import { generateFreshDailyRecommendation } from '@/modules/daily-recommendation/service'
 
 const loginSchema = z.object({
   body: z.object({
@@ -123,6 +124,15 @@ export async function authRoutes(app: FastifyInstance) {
     const refreshToken = createRefreshToken(app, user.id)
     await storeRefreshToken(user.id, refreshToken)
     setAuthCookies(reply, accessToken, refreshToken)
+
+    // Gera nova recomendação diária no login — sempre um artigo fresco,
+    // independente de o artigo do dia anterior ter sido lido ou não.
+    // Login não falha se a geração der erro (fallback no endpoint /daily).
+    try {
+      await generateFreshDailyRecommendation(user.id)
+    } catch (err) {
+      request.log.warn({ userId: user.id, err }, 'Falha ao gerar recomendação diária no login')
+    }
 
     return {
       user: { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString(), onboardingCompleted: user.onboardingCompleted },
